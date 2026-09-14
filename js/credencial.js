@@ -71,19 +71,19 @@ function obtenerCliente() {
 
 
     if (
-        window.EDUQR?.client
+        window.PUNTUALIXSCAN?.client
     ) {
 
-        return window.EDUQR.client;
+        return window.PUNTUALIXSCAN.client;
 
     }
 
 
     if (
-        window.EDUQR?.db
+        window.PUNTUALIXSCAN?.db
     ) {
 
-        return window.EDUQR.db;
+        return window.PUNTUALIXSCAN.db;
 
     }
 
@@ -188,13 +188,13 @@ async function protegerPagina() {
 
 
         if (
-            window.EDUQR &&
-            typeof window.EDUQR.protegerPagina ===
+            window.PUNTUALIXSCAN &&
+            typeof window.PUNTUALIXSCAN.protegerPagina ===
                 "function"
         ) {
 
             const resultado =
-                await window.EDUQR.protegerPagina({
+                await window.PUNTUALIXSCAN.protegerPagina({
 
                     redirectTo:
                         "login.html"

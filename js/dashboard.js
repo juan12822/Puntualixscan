@@ -13,7 +13,7 @@
     // ========================================================
 
     const db =
-        window.EDUQR?.client ||
+        window.PUNTUALIXSCAN?.client ||
         window.supabaseClient ||
         window.db;
 
@@ -57,10 +57,10 @@
         }
 
         if (
-            window.EDUQR?.utils?.escape
+            window.PUNTUALIXSCAN?.utils?.escape
         ) {
 
-            return window.EDUQR.utils.escape(
+            return window.PUNTUALIXSCAN.utils.escape(
                 valor
             );
         }
@@ -103,10 +103,10 @@
     function fechaHoy() {
 
         if (
-            window.EDUQR?.utils?.fechaHoy
+            window.PUNTUALIXSCAN?.utils?.fechaHoy
         ) {
 
-            return window.EDUQR.utils.fechaHoy();
+            return window.PUNTUALIXSCAN.utils.fechaHoy();
         }
 
         return new Intl.DateTimeFormat(
@@ -132,10 +132,10 @@
     function horaActual() {
 
         if (
-            window.EDUQR?.utils?.horaActual
+            window.PUNTUALIXSCAN?.utils?.horaActual
         ) {
 
-            return window.EDUQR.utils.horaActual();
+            return window.PUNTUALIXSCAN.utils.horaActual();
         }
 
         return new Intl.DateTimeFormat(
@@ -163,10 +163,10 @@
     function fechaCompleta() {
 
         if (
-            window.EDUQR?.utils?.fechaCompleta
+            window.PUNTUALIXSCAN?.utils?.fechaCompleta
         ) {
 
-            return window.EDUQR.utils.fechaCompleta();
+            return window.PUNTUALIXSCAN.utils.fechaCompleta();
         }
 
         return new Intl.DateTimeFormat(
@@ -254,7 +254,7 @@
 
         if (
             !usuario &&
-            !window.EDUQR
+            !window.PUNTUALIXSCAN
                 ?.auth
         ) {
 
@@ -265,14 +265,14 @@
         }
 
         if (
-            window.EDUQR
+            window.PUNTUALIXSCAN
                 ?.protegerPagina
         ) {
 
             try {
 
                 const permitido =
-                    await window.EDUQR.protegerPagina(
+                    await window.PUNTUALIXSCAN.protegerPagina(
                         {
                             redirect: true
                         }
@@ -1695,12 +1695,12 @@
         try {
 
             if (
-                window.EDUQR
+                window.PUNTUALIXSCAN
                     ?.auth
                     ?.logout
             ) {
 
-                await window.EDUQR.auth.logout();
+                await window.PUNTUALIXSCAN.auth.logout();
 
                 return;
             }

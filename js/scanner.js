@@ -97,8 +97,8 @@ const FOTO_DEFAULT =
 
 function obtenerCliente() {
 
-    if (window.EDUQR && window.EDUQR.client) {
-        return window.EDUQR.client;
+    if (window.PUNTUALIXSCAN && window.PUNTUALIXSCAN.client) {
+        return window.PUNTUALIXSCAN.client;
     }
 
     if (window.supabaseClient) {

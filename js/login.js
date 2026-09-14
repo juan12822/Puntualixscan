@@ -1,6 +1,6 @@
 /*
  * ============================================================
- * EDUQR CONTROL
+ * PUNTUALIXSCAN CONTROL
  * CONTROLADOR DE ACCESO INSTITUCIONAL
  * ============================================================
  *
@@ -245,7 +245,7 @@
 
 
         if (
-            !global.EDUQR?.utils?.isEmail
+            !global.PUNTUALIXSCAN?.utils?.isEmail
         ) {
 
             return (
@@ -255,7 +255,7 @@
 
 
         if (
-            !global.EDUQR.utils.isEmail(
+            !global.PUNTUALIXSCAN.utils.isEmail(
                 email
             )
         ) {
@@ -450,9 +450,9 @@
         try {
 
             const result =
-                await global.EDUQR.data.select(
+                await global.PUNTUALIXSCAN.data.select(
 
-                    global.EDUQR.TABLES.USUARIOS,
+                    global.PUNTUALIXSCAN.TABLES.USUARIOS,
 
                     {
 
@@ -480,7 +480,7 @@
             error
         ) {
 
-            global.EDUQR.logger?.warn(
+            global.PUNTUALIXSCAN.logger?.warn(
 
                 "No se pudo cargar el perfil institucional.",
 
@@ -535,7 +535,7 @@
             error
         ) {
 
-            global.EDUQR.logger?.warn(
+            global.PUNTUALIXSCAN.logger?.warn(
 
                 "No se pudo guardar la sesión local.",
 
@@ -566,7 +566,7 @@
             error
         ) {
 
-            global.EDUQR.logger?.warn(
+            global.PUNTUALIXSCAN.logger?.warn(
 
                 "No se pudo limpiar la sesión local.",
 
@@ -769,7 +769,7 @@
         try {
 
             const session =
-                await global.EDUQR.auth.session();
+                await global.PUNTUALIXSCAN.auth.session();
 
 
             if (
@@ -797,7 +797,7 @@
             clearLegacySession();
 
 
-            global.EDUQR.logger?.warn(
+            global.PUNTUALIXSCAN.logger?.warn(
 
                 "La sesión existente no pudo ser restaurada.",
 
@@ -897,7 +897,7 @@
         try {
 
             const result =
-                await global.EDUQR.auth.signIn({
+                await global.PUNTUALIXSCAN.auth.signIn({
 
                     email,
 
@@ -933,7 +933,7 @@
                     "Acceso concedido",
 
                 text:
-                    "Bienvenido a EDUQR CONTROL.",
+                    "Bienvenido a PUNTUALIXSCAN CONTROL.",
 
                 timer:
                     900,
@@ -1106,7 +1106,7 @@
 
 
         if (
-            !global.EDUQR.utils.isEmail(
+            !global.PUNTUALIXSCAN.utils.isEmail(
                 email
             )
         ) {
@@ -1181,7 +1181,7 @@
 
 
             const result =
-                await global.EDUQR.client.auth
+                await global.PUNTUALIXSCAN.client.auth
                     .resetPasswordForEmail(
 
                         email,
@@ -1222,7 +1222,7 @@
             error
         ) {
 
-            global.EDUQR.logger?.error(
+            global.PUNTUALIXSCAN.logger?.error(
 
                 "Error enviando recuperación de contraseña.",
 
@@ -1356,9 +1356,9 @@
         try {
 
             if (
-                !global.EDUQR ||
-                !global.EDUQR.auth ||
-                !global.EDUQR.utils
+                !global.PUNTUALIXSCAN ||
+                !global.PUNTUALIXSCAN.auth ||
+                !global.PUNTUALIXSCAN.utils
             ) {
 
                 throw new Error(
@@ -1391,7 +1391,7 @@
                 false;
 
 
-            global.EDUQR?.logger?.error(
+            global.PUNTUALIXSCAN?.logger?.error(
 
                 "No fue posible inicializar el acceso.",
 
@@ -1422,12 +1422,12 @@
        API GLOBAL
        ======================================================== */
 
-    global.EDUQR =
-        global.EDUQR ||
+    global.PUNTUALIXSCAN =
+        global.PUNTUALIXSCAN ||
         {};
 
 
-    global.EDUQR.login =
+    global.PUNTUALIXSCAN.login =
         Object.freeze({
 
             initialize,

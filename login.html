@@ -130,14 +130,14 @@
                 document.getElementById("correo").focus();
                 return;
             }
-            if (!window.EDUQR.utils.isEmail(email)) {
+            if (!window.PUNTUALIXSCAN.utils.isEmail(email)) {
                 await Swal.fire({ icon: "warning", title: "Correo inválido", text: "Verifica el formato del correo institucional." });
                 return;
             }
             const result = await Swal.fire({ title: "¿Enviar enlace?", text: "Te enviaremos un enlace seguro para restablecer tu contraseña.", icon: "question", showCancelButton: true, confirmButtonText: "Enviar enlace", cancelButtonText: "Cancelar", confirmButtonColor: "#165dff" });
             if (!result.isConfirmed) return;
             try {
-                const { error } = await window.EDUQR.client.auth.resetPasswordForEmail(email, { redirectTo: new URL("login.html", window.location.href).href });
+                const { error } = await window.PUNTUALIXSCAN.client.auth.resetPasswordForEmail(email, { redirectTo: new URL("login.html", window.location.href).href });
                 if (error) throw error;
                 await Swal.fire({ icon: "success", title: "Enlace enviado", text: "Revisa tu correo institucional para continuar.", confirmButtonColor: "#165dff" });
             } catch (error) {

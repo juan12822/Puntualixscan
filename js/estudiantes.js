@@ -173,9 +173,9 @@ const elementos = {
 
 function obtenerCliente() {
 
-    if (window.EDUQR?.client) {
+    if (window.PUNTUALIXSCAN?.client) {
 
-        return window.EDUQR.client;
+        return window.PUNTUALIXSCAN.client;
 
     }
 
@@ -261,10 +261,10 @@ async function protegerPagina() {
 
     try {
 
-        if (window.EDUQR?.protegerPagina) {
+        if (window.PUNTUALIXSCAN?.protegerPagina) {
 
             return Boolean(
-                await window.EDUQR.protegerPagina({
+                await window.PUNTUALIXSCAN.protegerPagina({
 
                     redirectTo:
                         CONFIG_ESTUDIANTES.login
@@ -2419,7 +2419,7 @@ async function eliminarEstudiante(
 function generarCodigoQR() {
 
     return (
-        `EDUQR-${Date.now()}-` +
+        `PUNTUALIXSCAN-${Date.now()}-` +
         generarFragmento(8)
     );
 
@@ -3660,10 +3660,10 @@ async function cerrarSesion(
     try {
 
         if (
-            window.EDUQR?.auth?.logout
+            window.PUNTUALIXSCAN?.auth?.logout
         ) {
 
-            await window.EDUQR.auth.logout({
+            await window.PUNTUALIXSCAN.auth.logout({
 
                 redirectTo:
                     CONFIG_ESTUDIANTES.login

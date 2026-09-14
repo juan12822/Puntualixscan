@@ -583,14 +583,14 @@ const Configuracion = (() => {
             ----------------------------------------- */
 
             if (
-                window.EDUQR?.client
+                window.PUNTUALIXSCAN?.client
             ) {
 
 
                 const {
                     data
                 } =
-                    await window.EDUQR.client.auth.getUser();
+                    await window.PUNTUALIXSCAN.client.auth.getUser();
 
 
                 if (
@@ -747,11 +747,11 @@ const Configuracion = (() => {
 
 
             if (
-                window.EDUQR?.client
+                window.PUNTUALIXSCAN?.client
             ) {
 
                 client =
-                    window.EDUQR.client;
+                    window.PUNTUALIXSCAN.client;
 
             } else if (
                 window.supabaseClient
@@ -886,16 +886,16 @@ const Configuracion = (() => {
 
 
             if (
-                window.EDUQR?.auth?.logout
+                window.PUNTUALIXSCAN?.auth?.logout
             ) {
 
-                await window.EDUQR.auth.logout();
+                await window.PUNTUALIXSCAN.auth.logout();
 
             } else if (
-                window.EDUQR?.client
+                window.PUNTUALIXSCAN?.client
             ) {
 
-                await window.EDUQR.client.auth.signOut();
+                await window.PUNTUALIXSCAN.client.auth.signOut();
 
             } else if (
                 window.supabaseClient

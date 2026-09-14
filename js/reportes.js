@@ -80,16 +80,16 @@ const $ = (id) =>
 
 function obtenerCliente() {
 
-    if (window.EDUQR?.client) {
+    if (window.PUNTUALIXSCAN?.client) {
 
-        return window.EDUQR.client;
+        return window.PUNTUALIXSCAN.client;
 
     }
 
 
-    if (window.EDUQR?.db) {
+    if (window.PUNTUALIXSCAN?.db) {
 
-        return window.EDUQR.db;
+        return window.PUNTUALIXSCAN.db;
 
     }
 
@@ -174,12 +174,12 @@ async function protegerPagina() {
     try {
 
         if (
-            window.EDUQR &&
-            typeof window.EDUQR.protegerPagina === "function"
+            window.PUNTUALIXSCAN &&
+            typeof window.PUNTUALIXSCAN.protegerPagina === "function"
         ) {
 
             const permitido =
-                await window.EDUQR.protegerPagina({
+                await window.PUNTUALIXSCAN.protegerPagina({
                     redirectTo: "login.html"
                 });
 

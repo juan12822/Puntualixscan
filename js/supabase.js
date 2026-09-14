@@ -1,6 +1,6 @@
 /*
  * ============================================================
- * EDUQR CONTROL
+ * PUNTUALIXSCAN CONTROL
  * Núcleo de Supabase y seguridad de la aplicación
  * ============================================================
  *
@@ -25,7 +25,7 @@
  * ============================================================
  */
 
-(function bootstrapEduQR(global) {
+(function bootstrapPuntualixscan(global) {
 
     "use strict";
 
@@ -71,7 +71,7 @@
             60000,
 
         appName:
-            "EDUQR CONTROL",
+            "PUNTUALIXSCAN CONTROL",
 
         appVersion:
             "2.0.0"
@@ -124,10 +124,10 @@
        ======================================================== */
 
     const existing =
-        global.EDUQR &&
-        typeof global.EDUQR === "object"
+        global.PUNTUALIXSCAN &&
+        typeof global.PUNTUALIXSCAN === "object"
 
-            ? global.EDUQR
+            ? global.PUNTUALIXSCAN
 
             : {};
 
@@ -136,7 +136,7 @@
        ERROR PERSONALIZADO
        ======================================================== */
 
-    class EduQRError extends Error {
+    class PuntualixscanError extends Error {
 
         constructor(
             message,
@@ -150,12 +150,12 @@
 
 
             this.name =
-                "EduQRError";
+                "PuntualixscanError";
 
 
             this.code =
                 options.code ||
-                "EDUQR_ERROR";
+                "PUNTUALIXSCAN_ERROR";
 
 
             this.cause =
@@ -198,7 +198,7 @@
             ) {
 
                 console.debug(
-                    "[EDUQR]",
+                    "[PUNTUALIXSCAN]",
                     message,
                     context || ""
                 );
@@ -212,7 +212,7 @@
         ) {
 
             console.info(
-                "[EDUQR]",
+                "[PUNTUALIXSCAN]",
                 message,
                 context || ""
             );
@@ -225,7 +225,7 @@
         ) {
 
             console.warn(
-                "[EDUQR]",
+                "[PUNTUALIXSCAN]",
                 message,
                 context || ""
             );
@@ -238,7 +238,7 @@
         ) {
 
             console.error(
-                "[EDUQR]",
+                "[PUNTUALIXSCAN]",
                 message,
                 error instanceof Error
                     ? error.message
@@ -260,7 +260,7 @@
 
         if (!condition) {
 
-            throw new EduQRError(
+            throw new PuntualixscanError(
                 message,
                 options
             );
@@ -564,7 +564,7 @@
                     headers: {
 
                         "X-Client-Info":
-                            "eduqr-control"
+                            "puntualixscan-control"
                     }
                 }
             }
@@ -630,7 +630,7 @@
 
                                     reject(
 
-                                        new EduQRError(
+                                        new PuntualixscanError(
 
                                             "La operación tardó " +
                                             "demasiado tiempo.",
@@ -674,7 +674,7 @@
     ) {
 
         if (
-            error instanceof EduQRError
+            error instanceof PuntualixscanError
         ) {
 
             return error;
@@ -687,7 +687,7 @@
             "No se pudo completar la operación.";
 
 
-        return new EduQRError(
+        return new PuntualixscanError(
 
             message,
 
@@ -2006,7 +2006,7 @@
 
 
                 Error:
-                    EduQRError,
+                    PuntualixscanError,
 
 
                 logger:
@@ -2055,7 +2055,7 @@
        VARIABLES COMPATIBLES
        ======================================================== */
 
-    global.EDUQR =
+    global.PUNTUALIXSCAN =
         namespace;
 
 
