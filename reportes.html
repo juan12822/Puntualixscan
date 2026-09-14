@@ -1,0 +1,1348 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <meta
+        name="theme-color"
+        content="#123b85"
+    >
+
+    <title>Reportes | EduAccess Enterprise</title>
+
+
+    <!-- FUENTES -->
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+
+    <link
+        rel="preconnect"
+        href="https://fonts.gstatic.com"
+        crossorigin
+    >
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet"
+    >
+
+
+    <!-- ICONOS -->
+
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+    >
+
+
+    <!-- CSS GENERAL -->
+
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
+
+
+    <!-- SUPABASE -->
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+
+    <!-- CHART -->
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+
+    <!-- EXCEL -->
+
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+
+    <!-- PDF -->
+
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+
+
+    <!-- SWEETALERT -->
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+
+    <!-- =====================================================
+         ESTILO ESPECÍFICO
+    ====================================================== -->
+
+    <style>
+
+        html,
+        body {
+
+            margin:0;
+
+            padding:0;
+
+            width:100%;
+
+            min-height:100%;
+
+            overflow-x:hidden;
+
+        }
+
+
+        body {
+
+            background:#f4f7fb;
+
+        }
+
+
+        .contenido {
+
+            min-width:0;
+
+            overflow-x:hidden;
+
+        }
+
+
+        /* ==================================================
+           FILTROS
+        ================================================== */
+
+        .report-filter-grid {
+
+            display:grid;
+
+            grid-template-columns:
+                minmax(220px, 1.6fr)
+                repeat(4, minmax(150px, 1fr));
+
+            gap:12px;
+
+            padding:20px;
+
+        }
+
+
+        .report-field {
+
+            display:flex;
+
+            flex-direction:column;
+
+            gap:7px;
+
+            color:#718096;
+
+            font-size:10px;
+
+            font-weight:800;
+
+        }
+
+
+        .report-field input,
+        .report-field select {
+
+            width:100%;
+
+            height:42px;
+
+            padding:0 12px;
+
+            border:1px solid #e2e8f0;
+
+            border-radius:10px;
+
+            background:#fff;
+
+            color:#172033;
+
+            font-family:inherit;
+
+            font-size:11px;
+
+            outline:none;
+
+            transition:.2s;
+
+        }
+
+
+        .report-field input:focus,
+        .report-field select:focus {
+
+            border-color:#7ca8ef;
+
+            box-shadow:
+                0 0 0 3px rgba(29,78,216,.08);
+
+        }
+
+
+        .report-actions {
+
+            display:flex;
+
+            flex-wrap:wrap;
+
+            gap:9px;
+
+            padding:0 20px 20px;
+
+        }
+
+
+        /* ==================================================
+           GRÁFICAS
+        ================================================== */
+
+        .report-charts {
+
+            display:grid;
+
+            grid-template-columns:
+                repeat(2, minmax(0, 1fr));
+
+            gap:16px;
+
+            margin-top:16px;
+
+        }
+
+
+        .report-chart {
+
+            height:360px;
+
+            min-height:360px;
+
+            position:relative;
+
+            overflow:hidden;
+
+        }
+
+
+        .report-chart canvas {
+
+            display:block !important;
+
+            width:100% !important;
+
+            height:285px !important;
+
+            max-height:285px !important;
+
+        }
+
+
+        /* ==================================================
+           TABLA
+        ================================================== */
+
+        .report-table-wrap {
+
+            width:100%;
+
+            overflow-x:auto;
+
+            overflow-y:visible;
+
+        }
+
+
+        .report-table {
+
+            width:100%;
+
+            min-width:900px;
+
+            border-collapse:collapse;
+
+        }
+
+
+        .report-table th {
+
+            padding:13px 12px;
+
+            background:#f8fafc;
+
+            color:#718096;
+
+            border-bottom:1px solid #e5eaf2;
+
+            font-size:9px;
+
+            font-weight:800;
+
+            text-align:left;
+
+            text-transform:uppercase;
+
+            letter-spacing:.3px;
+
+            white-space:nowrap;
+
+        }
+
+
+        .report-table td {
+
+            padding:12px;
+
+            border-bottom:1px solid #eef1f5;
+
+            color:#526176;
+
+            font-size:10px;
+
+            vertical-align:middle;
+
+            white-space:nowrap;
+
+        }
+
+
+        .report-table tbody tr:hover {
+
+            background:#fafcff;
+
+        }
+
+
+        .report-photo {
+
+            width:42px;
+
+            height:42px;
+
+            min-width:42px;
+
+            object-fit:cover;
+
+            border-radius:50%;
+
+            border:2px solid #eaf1ff;
+
+            background:#eaf1ff;
+
+            display:block;
+
+        }
+
+
+        .report-name {
+
+            color:#172033;
+
+            font-weight:800;
+
+        }
+
+
+        .report-badge {
+
+            display:inline-flex;
+
+            align-items:center;
+
+            justify-content:center;
+
+            min-width:72px;
+
+            padding:6px 9px;
+
+            border-radius:8px;
+
+            font-size:9px;
+
+            font-weight:800;
+
+        }
+
+
+        .report-badge.success {
+
+            background:#e9f8f2;
+
+            color:#159570;
+
+        }
+
+
+        .report-badge.warning {
+
+            background:#fff5df;
+
+            color:#c27b09;
+
+        }
+
+
+        .report-badge.blue {
+
+            background:#eaf1ff;
+
+            color:#315fb0;
+
+        }
+
+
+        /* ==================================================
+           PAGINACIÓN
+        ================================================== */
+
+        .report-pagination {
+
+            display:flex;
+
+            align-items:center;
+
+            justify-content:space-between;
+
+            gap:12px;
+
+            padding:16px 20px;
+
+            border-top:1px solid #eef1f5;
+
+        }
+
+
+        .report-page-info {
+
+            color:#718096;
+
+            font-size:10px;
+
+            font-weight:700;
+
+        }
+
+
+        /* ==================================================
+           ESTADO VACÍO
+        ================================================== */
+
+        .report-empty {
+
+            padding:45px 20px !important;
+
+            text-align:center !important;
+
+            color:#94a3b8 !important;
+
+        }
+
+
+        .report-empty i {
+
+            display:block;
+
+            margin-bottom:10px;
+
+            color:#b8c4d5;
+
+            font-size:28px;
+
+        }
+
+
+        /* ==================================================
+           RESPONSIVE
+        ================================================== */
+
+        @media (max-width:1100px) {
+
+            .report-filter-grid {
+
+                grid-template-columns:
+                    repeat(2, minmax(0, 1fr));
+
+            }
+
+
+            .report-charts {
+
+                grid-template-columns:1fr;
+
+            }
+
+        }
+
+
+        @media (max-width:700px) {
+
+            .report-filter-grid {
+
+                grid-template-columns:1fr;
+
+                padding:16px;
+
+            }
+
+
+            .report-actions {
+
+                padding:
+                    0 16px 16px;
+
+            }
+
+
+            .report-chart {
+
+                height:330px;
+
+                min-height:330px;
+
+            }
+
+
+            .report-chart canvas {
+
+                height:255px !important;
+
+                max-height:255px !important;
+
+            }
+
+
+            .report-pagination {
+
+                flex-direction:column;
+
+            }
+
+        }
+
+
+        /* ==================================================
+           IMPRESIÓN
+        ================================================== */
+
+        @media print {
+
+            .sidebar,
+            .top-actions,
+            .report-actions,
+            .report-filter-grid,
+            .report-pagination,
+            .footer {
+
+                display:none !important;
+
+            }
+
+
+            .contenido {
+
+                width:100% !important;
+
+                margin:0 !important;
+
+                padding:0 !important;
+
+            }
+
+
+            .report-charts {
+
+                display:none !important;
+
+            }
+
+
+            .panel {
+
+                box-shadow:none !important;
+
+                border:0 !important;
+
+            }
+
+
+            .report-table {
+
+                min-width:100% !important;
+
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<div class="layout">
+
+
+    <!-- =====================================================
+         SIDEBAR
+    ====================================================== -->
+
+    <aside class="sidebar">
+
+
+        <div class="brand">
+
+            <img
+                src="imagenes/logo.png"
+                alt="EduAccess"
+                width="42"
+                height="42"
+            >
+
+            <h2>
+                EduAccess
+            </h2>
+
+        </div>
+
+
+        <div class="usuario">
+
+
+            <img
+                src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='50' fill='%23eaf1ff'/%3E%3Ccircle cx='50' cy='36' r='19' fill='%23123b85'/%3E%3Cpath d='M18 88c3-23 16-34 32-34s29 11 32 34' fill='%23123b85'/%3E%3C/svg%3E"
+                alt="Administrador"
+                width="42"
+                height="42"
+            >
+
+
+            <div>
+
+                <h4>
+                    Administrador
+                </h4>
+
+                <p>
+                    Sistema activo
+                </p>
+
+            </div>
+
+
+        </div>
+
+
+        <nav>
+
+
+            <a
+                href="dashboard.html"
+                class="nav-link"
+            >
+
+                <i class="fa-solid fa-house"></i>
+
+                <span>
+                    Panel principal
+                </span>
+
+            </a>
+
+
+            <a
+                href="estudiantes.html"
+                class="nav-link"
+            >
+
+                <i class="fa-solid fa-user-graduate"></i>
+
+                <span>
+                    Estudiantes
+                </span>
+
+            </a>
+
+
+            <a
+                href="scanner.html"
+                class="nav-link"
+            >
+
+                <i class="fa-solid fa-qrcode"></i>
+
+                <span>
+                    Escáner QR
+                </span>
+
+            </a>
+
+
+            <a
+                href="reportes.html"
+                class="nav-link activo"
+            >
+
+                <i class="fa-solid fa-chart-column"></i>
+
+                <span>
+                    Reportes
+                </span>
+
+            </a>
+
+
+            <a
+                href="credencial.html"
+                class="nav-link"
+            >
+
+                <i class="fa-solid fa-id-card"></i>
+
+                <span>
+                    Credenciales
+                </span>
+
+            </a>
+
+
+            <a
+    href="configuracion.html"
+    class="nav-link"
+>
+    <i class="fa-solid fa-gear"></i>
+    <span>Configuración</span>
+</a>
+
+
+            <a
+                href="login.html"
+                class="nav-link logout"
+                id="btnCerrarSesion"
+            >
+
+                <i class="fa-solid fa-right-from-bracket"></i>
+
+                <span>
+                    Cerrar sesión
+                </span>
+
+            </a>
+
+
+        </nav>
+
+
+        <div class="sidebar-footer">
+
+            <span class="online"></span>
+
+            Servicios operativos
+
+        </div>
+
+
+    </aside>
+
+
+
+    <!-- =====================================================
+         CONTENIDO
+    ====================================================== -->
+
+    <main class="contenido">
+
+
+        <!-- TOPBAR -->
+
+        <header class="topbar">
+
+
+            <div>
+
+                <h1>
+                    Reportes de asistencia
+                </h1>
+
+                <p>
+                    Analiza, consulta y exporta la información institucional.
+                </p>
+
+            </div>
+
+
+            <div class="top-actions">
+
+
+                <button
+                    id="btnActualizar"
+                    class="btn btn-light"
+                    type="button"
+                >
+
+                    <i class="fa-solid fa-rotate"></i>
+
+                    Actualizar
+
+                </button>
+
+
+                <div class="clock">
+
+                    <i class="fa-solid fa-chart-line"></i>
+
+                    Analítica institucional
+
+                </div>
+
+
+            </div>
+
+
+        </header>
+
+
+
+        <!-- =================================================
+             TARJETAS
+        ================================================== -->
+
+        <section class="cards">
+
+
+            <article class="card">
+
+                <i class="fa-solid fa-calendar-check"></i>
+
+                <p>
+                    Total asistencias
+                </p>
+
+                <h2 id="totalAsistencias">
+                    0
+                </h2>
+
+                <span>
+                    Según los filtros actuales
+                </span>
+
+            </article>
+
+
+            <article class="card green">
+
+                <i class="fa-solid fa-circle-check"></i>
+
+                <p>
+                    A tiempo
+                </p>
+
+                <h2 id="totalATiempo">
+                    0
+                </h2>
+
+                <span>
+                    Ingresos puntuales
+                </span>
+
+            </article>
+
+
+            <article class="card amber">
+
+                <i class="fa-solid fa-clock"></i>
+
+                <p>
+                    Tardanzas
+                </p>
+
+                <h2 id="totalTarde">
+                    0
+                </h2>
+
+                <span>
+                    Ingresos tardíos
+                </span>
+
+            </article>
+
+
+            <article class="card cyan">
+
+                <i class="fa-solid fa-school"></i>
+
+                <p>
+                    Colegio
+                </p>
+
+                <h2 id="totalColegio">
+                    0
+                </h2>
+
+                <span>
+                    Ingreso regular
+                </span>
+
+            </article>
+
+
+            <article class="card purple">
+
+                <i class="fa-solid fa-building-columns"></i>
+
+                <p>
+                    Media Técnica
+                </p>
+
+                <h2 id="totalMedia">
+                    0
+                </h2>
+
+                <span>
+                    Ingreso académico
+                </span>
+
+            </article>
+
+
+        </section>
+
+
+
+        <!-- =================================================
+             FILTROS
+        ================================================== -->
+
+        <section
+            class="panel"
+            style="margin-top:16px"
+        >
+
+
+            <div class="panel-head">
+
+                <h2>
+
+                    <i class="fa-solid fa-filter"></i>
+
+                    Filtros de consulta
+
+                </h2>
+
+            </div>
+
+
+            <div class="report-filter-grid">
+
+
+                <label class="report-field">
+
+                    Buscar estudiante
+
+                    <input
+                        id="buscar"
+                        type="search"
+                        placeholder="Nombre o documento..."
+                        autocomplete="off"
+                    >
+
+                </label>
+
+
+                <label class="report-field">
+
+                    Curso
+
+                    <select id="filtroCurso">
+
+                        <option value="">
+                            Todos los cursos
+                        </option>
+
+                    </select>
+
+                </label>
+
+
+                <label class="report-field">
+
+                    Fecha
+
+                    <input
+                        id="filtroFecha"
+                        type="date"
+                    >
+
+                </label>
+
+
+                <label class="report-field">
+
+                    Estado
+
+                    <select id="filtroEstado">
+
+                        <option value="">
+                            Todos
+                        </option>
+
+                        <option value="A tiempo">
+                            A tiempo
+                        </option>
+
+                        <option value="Tarde">
+                            Tarde
+                        </option>
+
+                    </select>
+
+                </label>
+
+
+                <label class="report-field">
+
+                    Tipo de ingreso
+
+                    <select id="filtroIngreso">
+
+                        <option value="">
+                            Todos
+                        </option>
+
+                        <option value="Colegio">
+                            Colegio
+                        </option>
+
+                        <option value="Media Técnica">
+                            Media Técnica
+                        </option>
+
+                    </select>
+
+                </label>
+
+
+            </div>
+
+
+            <div class="report-actions">
+
+
+                <button
+                    id="btnExportarExcel"
+                    class="btn btn-light"
+                    type="button"
+                >
+
+                    <i class="fa-solid fa-file-excel"></i>
+
+                    Exportar Excel
+
+                </button>
+
+
+                <button
+                    id="btnExportarPDF"
+                    class="btn btn-light"
+                    type="button"
+                >
+
+                    <i class="fa-solid fa-file-pdf"></i>
+
+                    Exportar PDF
+
+                </button>
+
+
+                <button
+                    id="btnImprimir"
+                    class="btn btn-primary"
+                    type="button"
+                >
+
+                    <i class="fa-solid fa-print"></i>
+
+                    Imprimir
+
+                </button>
+
+
+            </div>
+
+
+        </section>
+
+
+
+        <!-- =================================================
+             GRÁFICAS
+        ================================================== -->
+
+        <section class="report-charts">
+
+
+            <article class="panel report-chart">
+
+                <div class="panel-head">
+
+                    <h2>
+
+                        <i class="fa-solid fa-chart-column"></i>
+
+                        Asistencias por curso
+
+                    </h2>
+
+                </div>
+
+
+                <canvas id="graficaCursos"></canvas>
+
+            </article>
+
+
+
+            <article class="panel report-chart">
+
+                <div class="panel-head">
+
+                    <h2>
+
+                        <i class="fa-solid fa-chart-pie"></i>
+
+                        A tiempo vs. tarde
+
+                    </h2>
+
+                </div>
+
+
+                <canvas id="graficaEstado"></canvas>
+
+            </article>
+
+
+
+            <article class="panel report-chart">
+
+                <div class="panel-head">
+
+                    <h2>
+
+                        <i class="fa-solid fa-school"></i>
+
+                        Tipo de ingreso
+
+                    </h2>
+
+                </div>
+
+
+                <canvas id="graficaIngreso"></canvas>
+
+            </article>
+
+
+        </section>
+
+
+
+        <!-- =================================================
+             TABLA
+        ================================================== -->
+
+        <section
+            class="panel"
+            style="margin-top:16px"
+        >
+
+
+            <div class="panel-head">
+
+                <h2>
+
+                    <i class="fa-solid fa-table"></i>
+
+                    Registro de asistencias
+
+                </h2>
+
+            </div>
+
+
+            <div class="report-table-wrap">
+
+
+                <table class="report-table">
+
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Foto
+                            </th>
+
+                            <th>
+                                Nombre
+                            </th>
+
+                            <th>
+                                Documento
+                            </th>
+
+                            <th>
+                                Curso
+                            </th>
+
+                            <th>
+                                Fecha
+                            </th>
+
+                            <th>
+                                Hora
+                            </th>
+
+                            <th>
+                                Estado
+                            </th>
+
+                            <th>
+                                Ingreso
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody id="tablaReportes">
+
+                        <tr>
+
+                            <td
+                                colspan="8"
+                                class="report-empty"
+                            >
+
+                                <i class="fa-solid fa-spinner fa-spin"></i>
+
+                                Cargando reportes...
+
+                            </td>
+
+                        </tr>
+
+                    </tbody>
+
+
+                </table>
+
+
+            </div>
+
+
+
+            <!-- PAGINACIÓN -->
+
+            <div class="report-pagination">
+
+
+                <button
+                    id="btnAnterior"
+                    class="btn btn-light"
+                    type="button"
+                >
+
+                    <i class="fa-solid fa-chevron-left"></i>
+
+                    Anterior
+
+                </button>
+
+
+                <span class="report-page-info">
+
+                    Mostrando
+
+                    <b id="inicioPagina">
+                        0
+                    </b>
+
+                    –
+
+                    <b id="finPagina">
+                        0
+                    </b>
+
+                    de
+
+                    <b id="totalPagina">
+                        0
+                    </b>
+
+                </span>
+
+
+                <button
+                    id="btnSiguiente"
+                    class="btn btn-light"
+                    type="button"
+                >
+
+                    Siguiente
+
+                    <i class="fa-solid fa-chevron-right"></i>
+
+                </button>
+
+
+            </div>
+
+
+        </section>
+
+
+
+        <!-- FOOTER -->
+
+        <footer class="footer">
+
+            <span>
+                © 2026 EduAccess Enterprise
+            </span>
+
+            <span>
+                Gestión inteligente de asistencia institucional
+            </span>
+
+        </footer>
+
+
+    </main>
+
+</div>
+
+
+
+<!-- JAVASCRIPT -->
+
+<script src="js/supabase.js"></script>
+
+<script src="js/reportes.js"></script>
+
+
+</body>
+
+</html>

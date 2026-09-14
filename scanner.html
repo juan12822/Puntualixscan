@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <meta
+        name="theme-color"
+        content="#123b85"
+    >
+
+    <title>Escáner QR | EduAccess Enterprise</title>
+
+
+    <!-- FUENTES -->
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+
+    <link
+        rel="preconnect"
+        href="https://fonts.gstatic.com"
+        crossorigin
+    >
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet"
+    >
+
+
+    <!-- ICONOS -->
+
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+    >
+
+
+    <!-- CSS GENERAL -->
+
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
+
+
+    <!-- SUPABASE -->
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+
+    <!-- ESCÁNER QR -->
+
+    <script src="https://unpkg.com/html5-qrcode"></script>
+
+
+    <!-- SWEETALERT -->
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+
+    <!-- =====================================================
+         ESTILO ESPECÍFICO DEL ESCÁNER
+    ====================================================== -->
+
+    <style>
+
+        /* ==================================================
+           SCANNER
+        ================================================== */
+
+        .scanner-grid {
+
+            display:grid;
+
+            grid-template-columns:
+                minmax(0, 1.7fr)
+                minmax(300px, .8fr);
+
+            gap:16px;
+
+            margin-top:16px;
+
+        }
+
+
+        .scanner-panel {
+
+            min-width:0;
+
+        }
+
+
+        .scanner-stage {
+
+            padding:24px;
+
+            text-align:center;
+
+        }
+
+
+        .scanner-stage h2 {
+
+            margin:0;
+
+            color:#172033;
+
+            font-size:18px;
+
+            font-weight:800;
+
+        }
+
+
+        .scanner-stage > p {
+
+            margin:7px 0 20px;
+
+            color:#718096;
+
+            font-size:12px;
+
+        }
+
+
+        /* ==================================================
+           READER
+        ================================================== */
+
+        #reader {
+
+            width:100%;
+
+            max-width:480px;
+
+            min-height:330px;
+
+            margin:0 auto;
+
+            border:1px solid #e5eaf2;
+
+            border-radius:18px;
+
+            overflow:hidden;
+
+            background:#f7f9fc;
+
+            display:none;
+
+        }
+
+
+        #reader video {
+
+            width:100% !important;
+
+            height:auto !important;
+
+            display:block;
+
+            border-radius:16px;
+
+        }
+
+
+        #reader img {
+
+            max-width:100%;
+
+        }
+
+
+        #reader__dashboard {
+
+            padding:10px !important;
+
+            background:#fff;
+
+        }
+
+
+        #reader__dashboard_section_swaplink {
+
+            color:#123b85 !important;
+
+        }
+
+
+        #reader__status_span {
+
+            font-size:11px !important;
+
+        }
+
+
+        /* ==================================================
+           BOTONES
+        ================================================== */
+
+        .scanner-actions {
+
+            display:flex;
+
+            justify-content:center;
+
+            align-items:center;
+
+            gap:9px;
+
+            flex-wrap:wrap;
+
+            margin-top:18px;
+
+        }
+
+
+        .btn-danger {
+
+            background:#fff0f0;
+
+            color:#d95757;
+
+            border:1px solid #ffd7d7;
+
+        }
+
+
+        .btn-danger:hover {
+
+            background:#ffe5e5;
+
+        }
+
+
+        .btn-success {
+
+            background:#159570;
+
+            color:#fff;
+
+            border:1px solid #159570;
+
+        }
+
+
+        .btn-success:hover {
+
+            background:#117d5d;
+
+        }
+
+
+        /* ==================================================
+           ESTUDIANTE ENCONTRADO
+        ================================================== */
+
+        #estudiante {
+
+            display:none;
+
+            margin:0 24px 20px;
+
+            padding:18px;
+
+            border:1px solid #e5eaf2;
+
+            border-radius:16px;
+
+            background:#fff;
+
+        }
+
+
+        .student-result {
+
+            display:flex;
+
+            align-items:center;
+
+            gap:16px;
+
+        }
+
+
+        #fotoEstudiante {
+
+            width:82px;
+
+            height:82px;
+
+            min-width:82px;
+
+            object-fit:cover;
+
+            border-radius:14px;
+
+            border:3px solid #eaf1ff;
+
+            background:#eaf1ff;
+
+        }
+
+
+        .student-result-info {
+
+            min-width:0;
+
+            text-align:left;
+
+        }
+
+
+        #nombreEstudiante {
+
+            margin:0 0 7px;
+
+            color:#172033;
+
+            font-size:17px;
+
+            font-weight:800;
+
+        }
+
+
+        .student-data {
+
+            display:flex;
+
+            flex-wrap:wrap;
+
+            gap:8px;
+
+        }
+
+
+        .student-data span {
+
+            padding:6px 9px;
+
+            border-radius:8px;
+
+            background:#f4f7fb;
+
+            color:#5e6c82;
+
+            font-size:10px;
+
+            font-weight:700;
+
+        }
+
+
+        /* ==================================================
+           OPCIONES
+        ================================================== */
+
+        #opciones {
+
+            display:none;
+
+            margin:0 24px 20px;
+
+            padding:20px;
+
+            border:1px solid #e5eaf2;
+
+            border-radius:16px;
+
+            background:#fbfcfe;
+
+        }
+
+
+        .option-title {
+
+            margin:0 0 10px;
+
+            color:#172033;
+
+            font-size:12px;
+
+            font-weight:800;
+
+        }
+
+
+        .option-title:not(:first-child) {
+
+            margin-top:20px;
+
+        }
+
+
+        .choice-buttons {
+
+            display:grid;
+
+            grid-template-columns:1fr 1fr;
+
+            gap:9px;
+
+        }
+
+
+        .choice {
+
+            min-height:48px;
+
+            border:1px solid #e2e8f0;
+
+            background:#fff;
+
+            color:#526176;
+
+            font-weight:700;
+
+            border-radius:10px;
+
+        }
+
+
+        .choice:hover {
+
+            border-color:#9dbcf3;
+
+            color:#123b85;
+
+        }
+
+
+        .choice.opcion-activa {
+
+            background:#eaf1ff;
+
+            color:#123b85;
+
+            border-color:#76a5f4;
+
+            box-shadow:0 0 0 3px rgba(29,78,216,.08);
+
+        }
+
+
+        /* ==================================================
+           MENSAJE
+        ================================================== */
+
+        #mensajeEstado {
+
+            margin:0 24px 24px;
+
+            min-height:42px;
+
+            padding:12px 14px;
+
+            display:flex;
+
+            align-items:center;
+
+            justify-content:center;
+
+            text-align:center;
+
+            border-radius:10px;
+
+            background:#f4f7fb;
+
+            color:#64748b;
+
+            font-size:11px;
+
+            font-weight:700;
+
+        }
+
+
+        /* ==================================================
+           GUÍA
+        ================================================== */
+
+        .guide {
+
+            padding:22px;
+
+        }
+
+
+        .guide-title {
+
+            display:flex;
+
+            align-items:center;
+
+            gap:9px;
+
+            padding-bottom:16px;
+
+            border-bottom:1px solid #e5eaf2;
+
+        }
+
+
+        .guide-title i {
+
+            width:34px;
+
+            height:34px;
+
+            display:flex;
+
+            align-items:center;
+
+            justify-content:center;
+
+            border-radius:10px;
+
+            background:#eaf1ff;
+
+            color:#123b85;
+
+        }
+
+
+        .guide-title h2 {
+
+            margin:0;
+
+            color:#172033;
+
+            font-size:15px;
+
+            font-weight:800;
+
+        }
+
+
+        .guide-item {
+
+            display:flex;
+
+            gap:12px;
+
+            padding:17px 0;
+
+            border-bottom:1px solid #eef1f5;
+
+        }
+
+
+        .guide-item:last-child {
+
+            border-bottom:0;
+
+        }
+
+
+        .guide-icon {
+
+            width:36px;
+
+            height:36px;
+
+            min-width:36px;
+
+            display:flex;
+
+            align-items:center;
+
+            justify-content:center;
+
+            border-radius:10px;
+
+            background:#f1f5ff;
+
+            color:#315fb0;
+
+        }
+
+
+        .guide-item h3 {
+
+            margin:0 0 4px;
+
+            color:#172033;
+
+            font-size:11px;
+
+            font-weight:800;
+
+        }
+
+
+        .guide-item p {
+
+            margin:0;
+
+            color:#718096;
+
+            font-size:10px;
+
+            line-height:1.55;
+
+        }
+
+
+        .security-box {
+
+            margin-top:10px;
+
+            padding:13px;
+
+            border-radius:11px;
+
+            background:#e9f8f2;
+
+            color:#159570;
+
+            font-size:10px;
+
+            font-weight:700;
+
+            line-height:1.5;
+
+        }
+
+
+        /* ==================================================
+           RESPONSIVE
+        ================================================== */
+
+        @media (max-width:1000px) {
+
+            .scanner-grid {
+
+                grid-template-columns:1fr;
+
+            }
+
+        }
+
+
+        @media (max-width:700px) {
+
+            .scanner-stage {
+
+                padding:16px;
+
+            }
+
+
+            #estudiante,
+            #opciones,
+            #mensajeEstado {
+
+                margin-left:16px;
+
+                margin-right:16px;
+
+            }
+
+
+            .student-result {
+
+                flex-direction:column;
+
+                text-align:center;
+
+            }
+
+
+            .student-result-info {
+
+                text-align:center;
+
+            }
+
+
+            .student-data {
+
+                justify-content:center;
+
+            }
+
+
+            .choice-buttons {
+
+                grid-template-columns:1fr;
+
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<div class="layout">
+
+
+    <!-- =====================================================
+         SIDEBAR
+    ====================================================== -->
+
+    <aside class="sidebar">
+
+
+        <div class="brand">
+
+            <img
+                src="imagenes/logo.png"
+                alt="EduAccess"
+                width="42"
+                height="42"
+            >
+
+            <h2>
+                EduAccess
+            </h2>
+
+        </div>
+
+
+        <div class="usuario">
+
+            <img
+                src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='50' fill='%23eaf1ff'/%3E%3Ccircle cx='50' cy='36' r='19' fill='%23123b85'/%3E%3Cpath d='M18 88c3-23 16-34 32-34s29 11 32 34' fill='%23123b85'/%3E%3C/svg%3E"
+                alt="Administrador"
+                width="42"
+                height="42"
+            >
+
+            <div>
+
+                <h4>
+                    Administrador
+                </h4>
+
+                <p>
+                    Sistema activo
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <nav>
+
+
+            <a
+                href="dashboard.html"
+                class="nav-link"
+            >
+
+                <i class="fa-solid fa-house"></i>
+
+                <span>
+                    Panel principal
+                </span>
+
+            </a>
+
+
+            <a
+                href="estudiantes.html"
+                class="nav-link"
+            >
+
+                <i class="fa-solid fa-user-graduate"></i>
+
+                <span>
+                    Estudiantes
+                </span>
+
+            </a>
+
+
+            <a
+                href="scanner.html"
+                class="nav-link activo"
+            >
+
+                <i class="fa-solid fa-qrcode"></i>
+
+                <span>
+                    Escáner QR
+                </span>
+
+            </a>
+
+
+            <a
+                href="reportes.html"
+                class="nav-link"
+            >
+
+                <i class="fa-solid fa-chart-column"></i>
+
+                <span>
+                    Reportes
+                </span>
+
+            </a>
+
+
+            <a
+                href="credencial.html"
+                class="nav-link"
+            >
+
+                <i class="fa-solid fa-id-card"></i>
+
+                <span>
+                    Credenciales
+                </span>
+
+            </a>
+
+
+           <a
+    href="configuracion.html"
+    class="nav-link"
+>
+    <i class="fa-solid fa-gear"></i>
+    <span>Configuración</span>
+</a>
+
+
+            <a
+                href="login.html"
+                class="nav-link logout"
+                id="btnCerrarSesion"
+            >
+
+                <i class="fa-solid fa-right-from-bracket"></i>
+
+                <span>
+                    Cerrar sesión
+                </span>
+
+            </a>
+
+
+        </nav>
+
+
+        <div class="sidebar-footer">
+
+            <span class="online"></span>
+
+            Servicios operativos
+
+        </div>
+
+
+    </aside>
+
+
+
+    <!-- =====================================================
+         CONTENIDO
+    ====================================================== -->
+
+    <main class="contenido">
+
+
+        <!-- TOPBAR -->
+
+        <header class="topbar">
+
+
+            <div>
+
+                <h1>
+                    Escáner QR
+                </h1>
+
+                <p>
+                    Registro de asistencia y puntualidad en tiempo real.
+                </p>
+
+            </div>
+
+
+            <div class="top-actions">
+
+                <button
+                    type="button"
+                    class="btn btn-light"
+                    id="btnActualizar"
+                >
+
+                    <i class="fa-solid fa-rotate"></i>
+
+                    Actualizar
+
+                </button>
+
+
+                <div class="clock">
+
+                    <i class="fa-solid fa-shield-halved"></i>
+
+                    Control institucional
+
+                </div>
+
+            </div>
+
+
+        </header>
+
+
+
+        <!-- =================================================
+             TARJETAS
+        ================================================== -->
+
+        <section class="cards">
+
+
+            <article class="card">
+
+                <i class="fa-solid fa-qrcode"></i>
+
+                <p>
+                    Escaneo
+                </p>
+
+                <h2>
+                    QR
+                </h2>
+
+                <span>
+                    Lectura segura de credenciales
+                </span>
+
+            </article>
+
+
+            <article class="card green">
+
+                <i class="fa-solid fa-camera"></i>
+
+                <p>
+                    Cámara
+                </p>
+
+                <h2 id="estadoCamara">
+                    Lista
+                </h2>
+
+                <span>
+                    Actívala cuando estés listo
+                </span>
+
+            </article>
+
+
+            <article class="card cyan">
+
+                <i class="fa-solid fa-user-check"></i>
+
+                <p>
+                    Asistencias hoy
+                </p>
+
+                <h2 id="totalHoy">
+                    0
+                </h2>
+
+                <span>
+                    Ingresos registrados
+                </span>
+
+            </article>
+
+
+            <article class="card amber">
+
+                <i class="fa-solid fa-clock"></i>
+
+                <p>
+                    Tardanzas
+                </p>
+
+                <h2 id="totalTarde">
+                    0
+                </h2>
+
+                <span>
+                    Ingresos fuera de tiempo
+                </span>
+
+            </article>
+
+
+        </section>
+
+
+
+        <!-- =================================================
+             ESCÁNER
+        ================================================== -->
+
+        <section class="scanner-grid">
+
+
+            <!-- PANEL PRINCIPAL -->
+
+            <section class="panel scanner-panel">
+
+
+                <div class="panel-head">
+
+                    <div>
+
+                        <h2>
+
+                            <i class="fa-solid fa-expand"></i>
+
+                            Lectura de credencial
+
+                        </h2>
+
+                        <p>
+                            Escanea el código QR del estudiante
+                            para registrar su ingreso.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+
+                <div class="scanner-stage">
+
+
+                    <h2>
+                        Escanear estudiante
+                    </h2>
+
+                    <p>
+                        Inicia la cámara y apunta al código QR
+                        de la credencial institucional.
+                    </p>
+
+
+                    <div id="reader"></div>
+
+
+                    <div class="scanner-actions">
+
+
+                        <button
+                            type="button"
+                            id="btnIniciar"
+                            class="btn btn-primary"
+                        >
+
+                            <i class="fa-solid fa-camera"></i>
+
+                            Iniciar cámara
+
+                        </button>
+
+
+                        <button
+                            type="button"
+                            id="btnDetener"
+                            class="btn btn-danger"
+                        >
+
+                            <i class="fa-solid fa-stop"></i>
+
+                            Detener cámara
+
+                        </button>
+
+
+                    </div>
+
+
+                </div>
+
+
+
+                <!-- ESTUDIANTE -->
+
+                <div id="estudiante">
+
+
+                    <div class="student-result">
+
+
+                        <img
+                            id="fotoEstudiante"
+                            src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23e8eef5'/%3E%3Ccircle cx='100' cy='72' r='38' fill='%238aa0b5'/%3E%3Cpath d='M35 180c8-42 33-63 65-63s57 21 65 63' fill='%238aa0b5'/%3E%3C/svg%3E"
+                            alt="Foto estudiante"
+                            width="82"
+                            height="82"
+                        >
+
+
+                        <div class="student-result-info">
+
+
+                            <h2 id="nombreEstudiante">
+                                Estudiante
+                            </h2>
+
+
+                            <div class="student-data">
+
+                                <span>
+
+                                    <i class="fa-solid fa-id-card"></i>
+
+                                    Documento:
+                                    <b id="documentoEstudiante">
+                                    </b>
+
+                                </span>
+
+
+                                <span>
+
+                                    <i class="fa-solid fa-graduation-cap"></i>
+
+                                    Curso:
+                                    <b id="cursoEstudiante">
+                                    </b>
+
+                                </span>
+
+                            </div>
+
+
+                        </div>
+
+
+                    </div>
+
+
+                </div>
+
+
+
+                <!-- OPCIONES -->
+
+                <div id="opciones">
+
+
+                    <h3 class="option-title">
+                        Tipo de ingreso
+                    </h3>
+
+
+                    <div class="choice-buttons">
+
+
+                        <button
+                            type="button"
+                            id="btnColegio"
+                            class="btn choice"
+                            onclick="seleccionarIngreso('Colegio')"
+                        >
+
+                            <i class="fa-solid fa-school"></i>
+
+                            Colegio
+
+                        </button>
+
+
+                        <button
+                            type="button"
+                            id="btnMedia"
+                            class="btn choice"
+                            onclick="seleccionarIngreso('Media Técnica')"
+                        >
+
+                            <i class="fa-solid fa-graduation-cap"></i>
+
+                            Media Técnica
+
+                        </button>
+
+
+                    </div>
+
+
+
+                    <h3 class="option-title">
+                        Estado de llegada
+                    </h3>
+
+
+                    <div class="choice-buttons">
+
+
+                        <button
+                            type="button"
+                            id="btnTiempo"
+                            class="btn choice"
+                            onclick="seleccionarEstado('A Tiempo')"
+                        >
+
+                            <i class="fa-solid fa-circle-check"></i>
+
+                            A tiempo
+
+                        </button>
+
+
+                        <button
+                            type="button"
+                            id="btnTarde"
+                            class="btn choice"
+                            onclick="seleccionarEstado('Tarde')"
+                        >
+
+                            <i class="fa-solid fa-clock"></i>
+
+                            Tarde
+
+                        </button>
+
+
+                    </div>
+
+
+
+                    <div class="scanner-actions">
+
+
+                        <button
+                            type="button"
+                            id="btnRegistrar"
+                            class="btn btn-success"
+                        >
+
+                            <i class="fa-solid fa-check"></i>
+
+                            Registrar asistencia
+
+                        </button>
+
+
+                    </div>
+
+
+                </div>
+
+
+
+                <!-- ESTADO -->
+
+                <div id="mensajeEstado">
+
+                    <i class="fa-solid fa-camera"></i>
+
+                    Presiona «Iniciar cámara» para comenzar.
+
+                </div>
+
+
+            </section>
+
+
+
+            <!-- =================================================
+                 GUÍA
+            ================================================== -->
+
+            <aside class="panel guide">
+
+
+                <div class="guide-title">
+
+                    <i class="fa-solid fa-circle-info"></i>
+
+                    <h2>
+                        Guía de uso
+                    </h2>
+
+                </div>
+
+
+                <div class="guide-item">
+
+                    <div class="guide-icon">
+
+                        <i class="fa-solid fa-camera"></i>
+
+                    </div>
+
+                    <div>
+
+                        <h3>
+                            1. Inicia la cámara
+                        </h3>
+
+                        <p>
+                            Autoriza el acceso a la cámara
+                            del dispositivo.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div class="guide-item">
+
+                    <div class="guide-icon">
+
+                        <i class="fa-solid fa-qrcode"></i>
+
+                    </div>
+
+                    <div>
+
+                        <h3>
+                            2. Escanea el QR
+                        </h3>
+
+                        <p>
+                            Enfoca la credencial hasta identificar
+                            correctamente al estudiante.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div class="guide-item">
+
+                    <div class="guide-icon">
+
+                        <i class="fa-solid fa-list-check"></i>
+
+                    </div>
+
+                    <div>
+
+                        <h3>
+                            3. Selecciona el ingreso
+                        </h3>
+
+                        <p>
+                            Elige Colegio o Media Técnica
+                            y confirma el estado.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div class="guide-item">
+
+                    <div class="guide-icon">
+
+                        <i class="fa-solid fa-shield-halved"></i>
+
+                    </div>
+
+                    <div>
+
+                        <h3>
+                            4. Registro protegido
+                        </h3>
+
+                        <p>
+                            El sistema verifica que el estudiante
+                            no tenga otra asistencia registrada.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div class="security-box">
+
+                    <i class="fa-solid fa-lock"></i>
+
+                    Sistema institucional protegido.
+                    Los registros se almacenan en la base
+                    de datos de asistencia.
+
+                </div>
+
+
+            </aside>
+
+
+        </section>
+
+
+
+        <!-- FOOTER -->
+
+        <footer class="footer">
+
+            <span>
+                © 2026 EduAccess Enterprise
+            </span>
+
+            <span>
+                Gestión inteligente de asistencia institucional
+            </span>
+
+        </footer>
+
+
+    </main>
+
+</div>
+
+
+
+<!-- =====================================================
+     JAVASCRIPT
+====================================================== -->
+
+<script src="js/supabase.js"></script>
+
+<script src="js/scanner.js"></script>
+
+
+</body>
+
+</html>

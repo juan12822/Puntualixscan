@@ -1,0 +1,1396 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <meta
+        name="theme-color"
+        content="#123b85"
+    >
+
+    <title>EduAccess | Panel de control</title>
+
+
+    <!-- =====================================================
+         FUENTES
+         ===================================================== -->
+
+    <link
+        rel="preconnect"
+        href="https://fonts.googleapis.com"
+    >
+
+    <link
+        rel="preconnect"
+        href="https://fonts.gstatic.com"
+        crossorigin
+    >
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet"
+    >
+
+
+    <!-- =====================================================
+         ICONOS
+         ===================================================== -->
+
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+    >
+
+
+    <!-- =====================================================
+         CSS GENERAL
+         UNA SOLA CARGA
+         ===================================================== -->
+
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
+
+
+    <!-- =====================================================
+         SUPABASE
+         ===================================================== -->
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+
+    <!-- =====================================================
+         CHART.JS
+         ===================================================== -->
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+
+    <!-- =====================================================
+         SWEETALERT
+         ===================================================== -->
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+</head>
+
+
+<body class="dashboard-page">
+
+
+<div class="layout">
+
+
+    <!-- =====================================================
+         SIDEBAR
+         ===================================================== -->
+
+    <aside class="sidebar">
+
+
+        <!-- MARCA -->
+
+        <div class="brand">
+
+            <img
+                src="imagenes/logo.png"
+                alt="EduAccess"
+            >
+
+            <h2>EduAccess</h2>
+
+        </div>
+
+
+        <!-- USUARIO -->
+
+        <div class="usuario">
+
+            <img
+                src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Crect width='80' height='80' rx='40' fill='%23eaf1ff'/%3E%3Ccircle cx='40' cy='29' r='14' fill='%23123b85'/%3E%3Cpath d='M16 68c2-16 12-24 24-24s22 8 24 24' fill='%23123b85'/%3E%3C/svg%3E"
+                alt="Usuario"
+            >
+
+            <div>
+
+                <!--
+                    IMPORTANTE:
+                    Estos IDs coinciden con dashboard.js
+                -->
+
+                <h4 id="nombreUsuario">
+                    Administrador
+                </h4>
+
+                <p id="rolUsuario">
+                    Usuario
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <!-- =================================================
+             NAVEGACIÓN
+             ================================================= -->
+
+        <nav>
+
+
+            <!-- DASHBOARD -->
+
+            <a
+                href="dashboard.html"
+                class="nav-link activo"
+            >
+
+                <i class="fa-solid fa-house"></i>
+
+                <span>
+                    Panel principal
+                </span>
+
+            </a>
+
+
+            <!-- ESTUDIANTES -->
+
+            <a
+                href="estudiantes.html"
+                class="nav-link"
+            >
+
+                <i class="fa-solid fa-user-graduate"></i>
+
+                <span>
+                    Estudiantes
+                </span>
+
+            </a>
+
+
+            <!-- SCANNER -->
+
+            <a
+                href="scanner.html"
+                class="nav-link"
+            >
+
+                <i class="fa-solid fa-qrcode"></i>
+
+                <span>
+                    Escáner QR
+                </span>
+
+            </a>
+
+
+            <!-- REPORTES -->
+
+            <a
+                href="reportes.html"
+                class="nav-link"
+            >
+
+                <i class="fa-solid fa-chart-column"></i>
+
+                <span>
+                    Reportes
+                </span>
+
+            </a>
+
+
+            <!-- CREDENCIALES -->
+
+            <a
+                href="credencial.html"
+                class="nav-link"
+            >
+
+                <i class="fa-solid fa-id-card"></i>
+
+                <span>
+                    Credenciales
+                </span>
+
+            </a>
+
+
+            <!-- CONFIGURACIÓN -->
+
+            <a
+                href="configuracion.html"
+                class="nav-link"
+            >
+
+                <i class="fa-solid fa-gear"></i>
+
+                <span>
+                    Configuración
+                </span>
+
+            </a>
+
+
+            <!-- CERRAR SESIÓN -->
+
+            <a
+                href="#"
+                id="btnCerrarSesion"
+                class="nav-link logout"
+            >
+
+                <i class="fa-solid fa-right-from-bracket"></i>
+
+                <span>
+                    Cerrar sesión
+                </span>
+
+            </a>
+
+
+        </nav>
+
+
+        <!-- =================================================
+             ESTADO DEL SISTEMA
+             ================================================= -->
+
+        <div class="sidebar-footer">
+
+            <span class="online"></span>
+
+            <span>
+                Servicios operativos
+            </span>
+
+        </div>
+
+
+    </aside>
+
+
+
+    <!-- =====================================================
+         CONTENIDO PRINCIPAL
+         ===================================================== -->
+
+    <main class="contenido">
+
+
+        <!-- =================================================
+             TOPBAR
+             ================================================= -->
+
+        <header class="topbar">
+
+
+            <div>
+
+                <h1>
+                    Panel de control
+                </h1>
+
+                <p id="fechaActual">
+                    Cargando fecha...
+                </p>
+
+            </div>
+
+
+            <div class="top-actions">
+
+
+                <button
+                    type="button"
+                    class="btn btn-light"
+                    id="btnActualizar"
+                >
+
+                    <i class="fa-solid fa-rotate"></i>
+
+                    Actualizar
+
+                </button>
+
+
+                <div class="clock">
+
+                    <i class="fa-regular fa-clock"></i>
+
+                    <span id="reloj">
+                        --:--:--
+                    </span>
+
+                </div>
+
+
+            </div>
+
+
+        </header>
+
+
+
+        <!-- =================================================
+             TARJETAS PRINCIPALES
+             ================================================= -->
+
+        <section class="cards">
+
+
+            <!-- TOTAL ESTUDIANTES -->
+
+            <article class="card">
+
+                <div class="card-icon">
+
+                    <i class="fa-solid fa-user-graduate"></i>
+
+                </div>
+
+                <p>
+                    Total estudiantes
+                </p>
+
+                <h2 id="totalEstudiantes">
+                    0
+                </h2>
+
+                <span>
+                    Registrados en el sistema
+                </span>
+
+            </article>
+
+
+
+            <!-- ASISTENCIAS -->
+
+            <article class="card green">
+
+                <div class="card-icon">
+
+                    <i class="fa-solid fa-circle-check"></i>
+
+                </div>
+
+                <p>
+                    Asistencias hoy
+                </p>
+
+                <h2 id="totalAsistencias">
+                    0
+                </h2>
+
+                <span>
+                    Ingresos registrados
+                </span>
+
+            </article>
+
+
+
+            <!-- A TIEMPO -->
+
+            <article class="card cyan">
+
+                <div class="card-icon">
+
+                    <i class="fa-solid fa-person-running"></i>
+
+                </div>
+
+                <p>
+                    A tiempo
+                </p>
+
+                <h2 id="totalATiempo">
+                    0
+                </h2>
+
+                <span>
+                    Estudiantes puntuales
+                </span>
+
+            </article>
+
+
+
+            <!-- TARDANZAS -->
+
+            <article class="card amber">
+
+                <div class="card-icon">
+
+                    <i class="fa-solid fa-clock"></i>
+
+                </div>
+
+                <p>
+                    Tardanzas
+                </p>
+
+                <h2 id="totalTardes">
+                    0
+                </h2>
+
+                <span>
+                    Ingresos tardíos
+                </span>
+
+            </article>
+
+
+
+            <!-- COLEGIO -->
+
+            <article class="card purple">
+
+                <div class="card-icon">
+
+                    <i class="fa-solid fa-school"></i>
+
+                </div>
+
+                <p>
+                    Colegio
+                </p>
+
+                <h2 id="totalColegio">
+                    0
+                </h2>
+
+                <span>
+                    Ingreso regular
+                </span>
+
+            </article>
+
+
+
+            <!-- MEDIA TÉCNICA -->
+
+            <article class="card red">
+
+                <div class="card-icon">
+
+                    <i class="fa-solid fa-building-columns"></i>
+
+                </div>
+
+                <p>
+                    Media técnica
+                </p>
+
+                <h2 id="totalMedia">
+                    0
+                </h2>
+
+                <span>
+                    Ingreso académico
+                </span>
+
+            </article>
+
+
+        </section>
+
+
+
+        <!-- =================================================
+             RESUMEN OPERATIVO + ESTADO DEL SISTEMA
+             ================================================= -->
+
+        <section class="dashboard-summary">
+
+
+            <!-- RESUMEN OPERATIVO -->
+
+            <article class="panel">
+
+
+                <div class="panel-head">
+
+                    <div>
+
+                        <h2>
+                            Resumen operativo
+                        </h2>
+
+                        <p>
+                            Indicadores generales del sistema
+                        </p>
+
+                    </div>
+
+
+                    <span id="ultimaSincronizacion">
+
+                        Actualizando...
+
+                    </span>
+
+                </div>
+
+
+                <div class="metrics">
+
+
+                    <!-- ASISTENCIA -->
+
+                    <div class="metric">
+
+                        <span>
+                            Asistencia general
+                        </span>
+
+                        <strong id="porcentajeAsistencia">
+                            0%
+                        </strong>
+
+                        <div class="bar">
+
+                            <i id="barraAsistencia"></i>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <!-- PUNTUALIDAD -->
+
+                    <div class="metric">
+
+                        <span>
+                            Puntualidad
+                        </span>
+
+                        <strong id="porcentajePuntualidad">
+                            0%
+                        </strong>
+
+                        <div class="bar">
+
+                            <i id="barraPuntualidad"></i>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <!-- MEDIA TÉCNICA -->
+
+                    <div class="metric">
+
+                        <span>
+                            Media técnica
+                        </span>
+
+                        <strong id="porcentajeMedia">
+                            0%
+                        </strong>
+
+                        <div class="bar">
+
+                            <i
+                                id="barraMedia"
+                                class="purplebar"
+                            ></i>
+
+                        </div>
+
+                    </div>
+
+
+                </div>
+
+
+            </article>
+
+
+
+            <!-- ESTADO DEL SISTEMA -->
+
+            <article class="panel">
+
+
+                <div class="panel-head">
+
+                    <div>
+
+                        <h2>
+                            Estado del sistema
+                        </h2>
+
+                        <p>
+                            Servicios y conexión institucional
+                        </p>
+
+                    </div>
+
+                    <i class="fa-solid fa-bell"></i>
+
+                </div>
+
+
+                <div class="system">
+
+
+                    <!-- SERVIDOR -->
+
+                    <div>
+
+                        <i class="fa-solid fa-server"></i>
+
+                        <h4>
+                            Servidor
+                        </h4>
+
+                        <span id="estadoServidor">
+                            Conectando
+                        </span>
+
+                    </div>
+
+
+                    <!-- BASE DE DATOS -->
+
+                    <div>
+
+                        <i class="fa-solid fa-database"></i>
+
+                        <h4>
+                            Datos
+                        </h4>
+
+                        <span id="estadoBD">
+                            Verificando
+                        </span>
+
+                    </div>
+
+
+                    <!-- STORAGE -->
+
+                    <div>
+
+                        <i class="fa-solid fa-cloud"></i>
+
+                        <h4>
+                            Storage
+                        </h4>
+
+                        <span id="estadoStorage">
+                            Verificando
+                        </span>
+
+                    </div>
+
+
+                    <!-- SEGURIDAD -->
+
+                    <div>
+
+                        <i class="fa-solid fa-shield-halved"></i>
+
+                        <h4>
+                            Seguridad
+                        </h4>
+
+                        <span>
+                            Protegido
+                        </span>
+
+                    </div>
+
+
+                </div>
+
+
+            </article>
+
+
+        </section>
+
+
+
+        <!-- =================================================
+             GRÁFICAS
+             ================================================= -->
+
+        <section class="charts">
+
+
+            <!-- ASISTENCIA -->
+
+            <article class="chart">
+
+                <div class="panel-head">
+
+                    <div>
+
+                        <h2>
+                            Asistencia
+                        </h2>
+
+                        <p>
+                            Comportamiento de asistencia
+                        </p>
+
+                    </div>
+
+                </div>
+
+                <canvas
+                    id="graficaAsistencia"
+                ></canvas>
+
+            </article>
+
+
+
+            <!-- INGRESOS -->
+
+            <article class="chart">
+
+                <div class="panel-head">
+
+                    <div>
+
+                        <h2>
+                            Ingresos
+                        </h2>
+
+                        <p>
+                            Distribución de ingresos
+                        </p>
+
+                    </div>
+
+                </div>
+
+                <canvas
+                    id="graficaIngreso"
+                ></canvas>
+
+            </article>
+
+
+
+            <!-- HORARIOS -->
+
+            <article class="chart">
+
+                <div class="panel-head">
+
+                    <div>
+
+                        <h2>
+                            Horarios
+                        </h2>
+
+                        <p>
+                            Comportamiento por hora
+                        </p>
+
+                    </div>
+
+                </div>
+
+                <canvas
+                    id="graficaHoras"
+                ></canvas>
+
+            </article>
+
+
+
+            <!-- CURSOS -->
+
+            <article class="chart">
+
+                <div class="panel-head">
+
+                    <div>
+
+                        <h2>
+                            Cursos
+                        </h2>
+
+                        <p>
+                            Distribución institucional
+                        </p>
+
+                    </div>
+
+                </div>
+
+                <canvas
+                    id="graficaCursos"
+                ></canvas>
+
+            </article>
+
+
+        </section>
+
+
+
+        <!-- =================================================
+             ACTIVIDAD RECIENTE
+             ================================================= -->
+
+        <section class="panel activity-panel">
+
+
+            <div class="panel-head">
+
+                <div>
+
+                    <h2>
+                        Últimas asistencias
+                    </h2>
+
+                    <p>
+                        Registro reciente de entradas institucionales
+                    </p>
+
+                </div>
+
+
+                <div class="activity-tools">
+
+
+                    <input
+                        type="search"
+                        id="buscarAsistencia"
+                        class="search"
+                        placeholder="Buscar estudiante..."
+                        autocomplete="off"
+                        aria-label="Buscar estudiante"
+                    >
+
+
+                    <button
+                        type="button"
+                        class="btn btn-light"
+                        id="btnActualizarTabla"
+                    >
+
+                        <i class="fa-solid fa-rotate"></i>
+
+                        Actualizar
+
+                    </button>
+
+
+                    <button
+                        type="button"
+                        class="btn btn-primary"
+                        id="btnExportar"
+                    >
+
+                        <i class="fa-solid fa-file-export"></i>
+
+                        Exportar
+
+                    </button>
+
+
+                </div>
+
+
+            </div>
+
+
+
+            <!-- TABLA -->
+
+            <div class="table-wrap">
+
+                <table class="dashboard-table">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Foto
+                            </th>
+
+                            <th>
+                                Nombre
+                            </th>
+
+                            <th>
+                                Documento
+                            </th>
+
+                            <th>
+                                Curso
+                            </th>
+
+                            <th>
+                                Fecha
+                            </th>
+
+                            <th>
+                                Hora
+                            </th>
+
+                            <th>
+                                Estado
+                            </th>
+
+                            <th>
+                                Ingreso
+                            </th>
+
+                            <th>
+                                Acciones
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody id="contenidoTabla">
+
+                        <tr>
+
+                            <td
+                                colspan="9"
+                                style="
+                                    text-align:center;
+                                    padding:35px;
+                                    color:#8b98aa;
+                                "
+                            >
+
+                                Cargando asistencias...
+
+                            </td>
+
+                        </tr>
+
+                    </tbody>
+
+
+                </table>
+
+            </div>
+
+
+
+            <!-- INDICADORES -->
+
+            <div class="activity-indicators">
+
+
+                <div class="activity-indicator">
+
+                    <span>
+                        Registros hoy
+                    </span>
+
+                    <strong id="hoy">
+                        0
+                    </strong>
+
+                </div>
+
+
+                <div class="activity-indicator">
+
+                    <span>
+                        Presentes
+                    </span>
+
+                    <strong id="presentes">
+                        0
+                    </strong>
+
+                </div>
+
+
+                <div class="activity-indicator">
+
+                    <span>
+                        Tarde
+                    </span>
+
+                    <strong id="tarde">
+                        0
+                    </strong>
+
+                </div>
+
+
+                <div class="activity-indicator">
+
+                    <span>
+                        Ausentes
+                    </span>
+
+                    <strong id="ausentes">
+                        0
+                    </strong>
+
+                </div>
+
+
+            </div>
+
+
+        </section>
+
+
+
+        <!-- =================================================
+             NOTIFICACIONES
+             ================================================= -->
+
+        <section class="notifications">
+
+
+            <!-- NOTIFICACIONES -->
+
+            <article class="notification-panel">
+
+
+                <div class="panel-head">
+
+                    <div>
+
+                        <h2>
+                            Notificaciones
+                        </h2>
+
+                        <p>
+                            Información importante del sistema
+                        </p>
+
+                    </div>
+
+                    <i class="fa-solid fa-bell"></i>
+
+                </div>
+
+
+                <div id="listaNotificaciones">
+
+                    <div
+                        style="
+                            padding:20px;
+                            text-align:center;
+                            color:#8b98aa;
+                            font-size:10px;
+                        "
+                    >
+
+                        Cargando notificaciones...
+
+                    </div>
+
+                </div>
+
+
+            </article>
+
+
+
+            <!-- INFORMACIÓN -->
+
+            <article class="notification-panel">
+
+
+                <div class="panel-head">
+
+                    <div>
+
+                        <h2>
+                            Información
+                        </h2>
+
+                        <p>
+                            Estado de la plataforma
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    id="informacionSistema"
+                    style="
+                        color:#718096;
+                        font-size:10px;
+                        line-height:1.7;
+                    "
+                >
+
+                    EduAccess está funcionando como sistema
+                    institucional de control de asistencia.
+
+                </div>
+
+
+            </article>
+
+
+        </section>
+
+
+
+        <!-- =================================================
+             FOOTER
+             ================================================= -->
+
+        <footer class="footer">
+
+            <span>
+                © 2026 EduAccess Enterprise
+            </span>
+
+            <span>
+                Sistema institucional de asistencia
+            </span>
+
+        </footer>
+
+
+    </main>
+
+
+</div>
+
+
+
+<!-- ============================================================
+     MODAL DETALLE DE ASISTENCIA
+     ============================================================ -->
+
+<div
+    id="modalDetalle"
+    class="modal oculto"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="detalleNombre"
+>
+
+
+    <div class="modal-contenido">
+
+
+        <!-- CABECERA -->
+
+        <div class="modal-header">
+
+            <h2>
+                Detalle de asistencia
+            </h2>
+
+
+            <button
+                type="button"
+                class="cerrar"
+                id="cerrarModal"
+                aria-label="Cerrar"
+            >
+
+                <i class="fa-solid fa-xmark"></i>
+
+            </button>
+
+        </div>
+
+
+
+        <!-- INFORMACIÓN PRINCIPAL -->
+
+        <div
+            style="
+                text-align:center;
+                padding:20px 0;
+            "
+        >
+
+            <img
+                id="detalleFoto"
+                class="foto-tabla"
+                alt="Estudiante"
+                src="imagenes/usuario.png"
+                style="
+                    width:90px !important;
+                    height:90px !important;
+                    border-radius:14px;
+                "
+            >
+
+
+            <h2
+                id="detalleNombre"
+                style="
+                    margin-top:12px;
+                    font-size:18px;
+                "
+            >
+                —
+            </h2>
+
+        </div>
+
+
+
+        <!-- DATOS -->
+
+        <div
+            style="
+                display:grid;
+                gap:10px;
+            "
+        >
+
+
+            <div>
+
+                <strong>
+                    Documento:
+                </strong>
+
+                <span id="detalleDocumento">
+                    —
+                </span>
+
+            </div>
+
+
+            <div>
+
+                <strong>
+                    Curso:
+                </strong>
+
+                <span id="detalleCurso">
+                    —
+                </span>
+
+            </div>
+
+
+            <div>
+
+                <strong>
+                    Fecha:
+                </strong>
+
+                <span id="detalleFecha">
+                    —
+                </span>
+
+            </div>
+
+
+            <div>
+
+                <strong>
+                    Hora:
+                </strong>
+
+                <span id="detalleHora">
+                    —
+                </span>
+
+            </div>
+
+
+            <div>
+
+                <strong>
+                    Estado:
+                </strong>
+
+                <span id="detalleEstado">
+                    —
+                </span>
+
+            </div>
+
+
+            <div>
+
+                <strong>
+                    Ingreso:
+                </strong>
+
+                <span id="detalleIngreso">
+                    —
+                </span>
+
+            </div>
+
+
+        </div>
+
+
+    </div>
+
+
+</div>
+
+
+
+<!-- ============================================================
+     LOADER
+     ============================================================ -->
+
+<div
+    id="loaderSistema"
+>
+
+    <div class="loader">
+
+        <i class="fa-solid fa-spinner fa-spin"></i>
+
+        <span>
+            Cargando EduAccess...
+        </span>
+
+    </div>
+
+</div>
+
+
+
+<!-- ============================================================
+     JAVASCRIPT
+     ============================================================ -->
+
+<!--
+    IMPORTANTE:
+    supabase.js debe cargarse antes de dashboard.js.
+-->
+
+<script src="js/supabase.js"></script>
+
+<script src="js/dashboard.js"></script>
+
+
+</body>
+
+</html>

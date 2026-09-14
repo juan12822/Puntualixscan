@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#0a347e">
+    <meta name="description" content="Portal seguro de acceso a EduAccess Enterprise.">
+    <title>Acceso | EduAccess Enterprise</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" referrerpolicy="no-referrer">
+    <style>
+        :root { --ink:#11213e; --muted:#65758f; --line:#dce6f3; --primary:#165dff; --primary-dark:#0e42c4; --surface:#fff; --canvas:#eff5ff; --mint:#79edc7; }
+        * { box-sizing:border-box; }
+        html { min-height:100%; }
+        body { min-height:100vh; margin:0; color:var(--ink); background:var(--canvas); font-family:Inter,Arial,sans-serif; }
+        button,input { font:inherit; }
+        button { cursor:pointer; }
+        .access-page { display:grid; min-height:100vh; grid-template-columns:minmax(360px,.96fr) minmax(420px,1.04fr); }
+        .brand-panel { position:relative; isolation:isolate; display:flex; overflow:hidden; padding:clamp(2rem,5vw,5.75rem); color:#fff; background:#0a3077; }
+        .brand-panel::before,.brand-panel::after { position:absolute; z-index:-1; content:""; border-radius:50%; }
+        .brand-panel::before { width:44rem; height:44rem; top:-20rem; left:-17rem; border:1px solid rgb(255 255 255 / 18%); box-shadow:inset 0 0 0 4rem rgb(78 153 255 / 8%),inset 0 0 0 9rem rgb(78 153 255 / 7%),inset 0 0 0 14rem rgb(78 153 255 / 6%); }
+        .brand-panel::after { width:25rem; height:25rem; right:-10rem; bottom:-7rem; background:rgb(103 229 196 / 22%); }
+        .brand-content { display:flex; flex-direction:column; width:100%; max-width:39rem; margin:auto; }
+        .brand-mark { display:grid; place-items:center; width:3.25rem; height:3.25rem; margin-bottom:2.75rem; overflow:hidden; border:1px solid rgb(255 255 255 / 35%); border-radius:1rem; background:#fff; box-shadow:0 12px 28px rgb(0 14 48 / 22%); }
+        .brand-mark img { width:2.5rem; height:2.5rem; object-fit:contain; }
+        .brand-kicker,.eyebrow { margin:0 0 1rem; font-size:.76rem; font-weight:800; letter-spacing:.14em; text-transform:uppercase; }
+        .brand-kicker { color:var(--mint); }
+        .brand-title { max-width:8.5ch; margin:0; font-family:Manrope,Inter,sans-serif; font-size:clamp(2.25rem,4.6vw,4.4rem); line-height:1.05; letter-spacing:-.06em; }
+        .brand-copy { max-width:31rem; margin:1.5rem 0 0; color:rgb(255 255 255 / 79%); font-size:clamp(.95rem,1.3vw,1.08rem); line-height:1.75; }
+        .feature-list { display:grid; gap:.9rem; margin:auto 0 0; padding:3.5rem 0 0; list-style:none; }
+        .feature-list li { display:flex; align-items:center; gap:.75rem; color:rgb(255 255 255 / 85%); font-size:.9rem; }
+        .feature-list i { display:grid; place-items:center; width:1.5rem; height:1.5rem; color:#0e4aab; font-size:.7rem; border-radius:50%; background:var(--mint); }
+        .access-panel { display:grid; place-items:center; padding:clamp(1.5rem,4vw,4rem); background:linear-gradient(135deg,#f9fbff,#edf5ff); }
+        .access-card { width:min(100%,29rem); animation:enter .55s ease-out both; }
+        .mobile-brand { display:none; }
+        .eyebrow { color:var(--primary); }
+        .access-card h1 { margin:0; font-family:Manrope,Inter,sans-serif; font-size:clamp(1.85rem,3vw,2.5rem); letter-spacing:-.05em; }
+        .intro { margin:.85rem 0 2.1rem; color:var(--muted); font-size:.95rem; line-height:1.6; }
+        .login-form { display:grid; gap:1.25rem; }
+        .field { display:grid; gap:.55rem; }
+        .field-label { color:#283956; font-size:.84rem; font-weight:700; }
+        .field-shell { display:flex; align-items:center; min-height:3.5rem; border:1px solid var(--line); border-radius:.85rem; background:var(--surface); box-shadow:0 1px 2px rgb(16 33 63 / 2%); transition:border-color .18s,box-shadow .18s; }
+        .field-shell:focus-within { border-color:var(--primary); box-shadow:0 0 0 4px rgb(22 93 255 / 12%); }
+        .field-icon { width:3.15rem; color:#6d7f9c; text-align:center; }
+        .field input { width:100%; min-width:0; padding:.85rem .25rem .85rem 0; color:var(--ink); border:0; outline:0; background:transparent; font-size:.94rem; }
+        .field input::placeholder { color:#9ba9bd; }
+        .password-toggle { display:grid; place-items:center; width:3.15rem; align-self:stretch; color:#60728e; border:0; border-radius:0 .85rem .85rem 0; background:transparent; }
+        .password-toggle:hover,.password-toggle:focus-visible { color:var(--primary); background:#f1f6ff; outline:0; }
+        .form-options { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-top:.05rem; }
+        .remember { display:inline-flex; align-items:center; gap:.6rem; color:var(--muted); font-size:.83rem; font-weight:600; cursor:pointer; }
+        .remember input { width:1rem; height:1rem; margin:0; accent-color:var(--primary); }
+        .recover-link { padding:0; color:var(--primary); border:0; background:transparent; font-size:.8rem; font-weight:700; }
+        .recover-link:hover { color:var(--primary-dark); text-decoration:underline; }
+        .btn-login { display:inline-flex; align-items:center; justify-content:center; gap:.65rem; min-height:3.5rem; margin-top:.35rem; padding:.8rem 1rem; color:#fff; border:0; border-radius:.85rem; background:linear-gradient(135deg,var(--primary),#3477ff); box-shadow:0 10px 20px rgb(22 93 255 / 22%); font-weight:800; transition:transform .18s,box-shadow .18s,background .18s; }
+        .btn-login:hover { background:linear-gradient(135deg,var(--primary-dark),var(--primary)); box-shadow:0 13px 24px rgb(22 93 255 / 28%); transform:translateY(-1px); }
+        .btn-login:focus-visible { outline:3px solid rgb(22 93 255 / 30%); outline-offset:3px; }
+        .btn-login:disabled { cursor:wait; opacity:.72; transform:none; }
+        .security-note { display:flex; align-items:center; gap:.45rem; margin:1.7rem 0 0; color:#70809a; font-size:.78rem; line-height:1.5; }
+        .security-note i { color:#1aa271; }
+        .access-footer { margin:2rem 0 0; color:#8795ab; font-size:.75rem; line-height:1.6; text-align:center; }
+        @keyframes enter { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+        @media (max-width:850px) { .access-page { grid-template-columns:1fr; } .brand-panel { display:none; } .access-panel { min-height:100vh; } .mobile-brand { display:flex; align-items:center; gap:.7rem; margin-bottom:2rem; font-family:Manrope,Inter,sans-serif; font-size:1rem; font-weight:800; } .mobile-brand img { width:2.4rem; height:2.4rem; object-fit:contain; padding:.25rem; border-radius:.7rem; background:#fff; box-shadow:0 5px 15px rgb(16 33 63 / 10%); } }
+        @media (max-width:420px) { .access-panel { padding:1.5rem; } .form-options { align-items:flex-start; flex-direction:column; } }
+        @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms !important; transition-duration:.01ms !important; } }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+    <main class="access-page">
+        <!-- Identidad institucional. -->
+        <section class="brand-panel" aria-label="EduAccess Enterprise">
+            <div class="brand-content">
+                <div class="brand-mark"><img src="imagenes/logo.png" alt="Logo de EduAccess"></div>
+                <p class="brand-kicker">Gestión académica conectada</p>
+                <h2 class="brand-title">La asistencia, bajo control.</h2>
+                <p class="brand-copy">Centraliza la operación académica, registra asistencia en tiempo real y toma decisiones con información confiable.</p>
+                <ul class="feature-list" aria-label="Características de la plataforma">
+                    <li><i class="fa-solid fa-check" aria-hidden="true"></i>Registro de asistencia en tiempo real</li>
+                    <li><i class="fa-solid fa-check" aria-hidden="true"></i>Información académica centralizada</li>
+                    <li><i class="fa-solid fa-check" aria-hidden="true"></i>Acceso seguro para personal autorizado</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- IDs conservados para la integración con js/login.js. -->
+        <section class="access-panel" aria-labelledby="access-title">
+            <div class="access-card">
+                <div class="mobile-brand"><img src="imagenes/logo.png" alt="Logo de EduAccess">EduAccess Enterprise</div>
+                <p class="eyebrow">Portal institucional</p>
+                <h1 id="access-title">Bienvenido de nuevo</h1>
+                <p class="intro">Ingresa con tus credenciales institucionales para continuar.</p>
+                <form id="formLogin" class="login-form">
+                    <div class="field">
+                        <label class="field-label" for="correo">Correo electrónico</label>
+                        <div class="field-shell">
+                            <i class="fa-regular fa-envelope field-icon" aria-hidden="true"></i>
+                            <input id="correo" name="correo" type="email" inputmode="email" autocomplete="email" placeholder="nombre@institucion.edu.co" required>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="field-label" for="clave">Contraseña</label>
+                        <div class="field-shell">
+                            <i class="fa-solid fa-lock field-icon" aria-hidden="true"></i>
+                            <input id="clave" name="clave" type="password" autocomplete="current-password" placeholder="Ingresa tu contraseña" required>
+                            <button class="password-toggle" type="button" onclick="mostrarPassword()" aria-label="Mostrar contraseña" title="Mostrar contraseña"><i id="iconoPassword" class="fa-solid fa-eye" aria-hidden="true"></i></button>
+                        </div>
+                    </div>
+                    <div class="form-options">
+                        <label class="remember" for="recordar"><input id="recordar" name="recordar" type="checkbox">Recordar este equipo</label>
+                        <button class="recover-link" type="button" id="recuperarClave">¿Olvidaste tu contraseña?</button>
+                    </div>
+                    <button class="btn-login" type="submit"><i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i>Ingresar al sistema</button>
+                </form>
+                <p class="security-note"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i>Tus datos se transmiten mediante una conexión segura.</p>
+                <footer class="access-footer">Institución Educativa Maestro Arenas Betancur<br>© 2026 EduAccess Enterprise</footer>
+            </div>
+        </section>
+    </main>
+    <script src="js/supabase.js"></script>
+    <script src="js/login.js"></script>
+    <script>
+        /* Recuperación de contraseña mediante Supabase Auth. */
+        document.getElementById("recuperarClave").addEventListener("click", async () => {
+            const email = document.getElementById("correo").value.trim();
+            if (!email) {
+                await Swal.fire({ icon: "info", title: "Ingresa tu correo", text: "Escribe tu correo institucional para recibir el enlace de recuperación." });
+                document.getElementById("correo").focus();
+                return;
+            }
+            if (!window.EDUQR.utils.isEmail(email)) {
+                await Swal.fire({ icon: "warning", title: "Correo inválido", text: "Verifica el formato del correo institucional." });
+                return;
+            }
+            const result = await Swal.fire({ title: "¿Enviar enlace?", text: "Te enviaremos un enlace seguro para restablecer tu contraseña.", icon: "question", showCancelButton: true, confirmButtonText: "Enviar enlace", cancelButtonText: "Cancelar", confirmButtonColor: "#165dff" });
+            if (!result.isConfirmed) return;
+            try {
+                const { error } = await window.EDUQR.client.auth.resetPasswordForEmail(email, { redirectTo: new URL("login.html", window.location.href).href });
+                if (error) throw error;
+                await Swal.fire({ icon: "success", title: "Enlace enviado", text: "Revisa tu correo institucional para continuar.", confirmButtonColor: "#165dff" });
+            } catch (error) {
+                await Swal.fire({ icon: "error", title: "No fue posible enviar el enlace", text: error.message || "Inténtalo nuevamente en unos minutos.", confirmButtonColor: "#165dff" });
+            }
+        });
+    </script>
+</body>
+</html>

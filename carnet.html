@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>
+Carnet Institucional | PUNTUALIXSCAN
+</title>
+
+
+<!-- ICONOS -->
+
+<link 
+href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+rel="stylesheet">
+
+
+<!-- ESTILOS PRINCIPALES -->
+
+<link rel="stylesheet" href="style.css">
+
+
+</head>
+
+
+<body>
+
+
+<!--====================================================
+LOADER
+=====================================================-->
+
+<div id="loader" class="loader">
+
+    <div class="spinner"></div>
+
+</div>
+
+
+
+<!--====================================================
+CONTENEDOR PRINCIPAL
+=====================================================-->
+
+<div class="carnet-container">
+
+
+
+<!--====================================================
+BOTONES SUPERIORES
+=====================================================-->
+
+<div class="carnet-actions">
+
+
+<button 
+class="btn btn-primary"
+onclick="imprimirCarnet()">
+
+<i class="fa-solid fa-print"></i>
+
+Imprimir
+
+</button>
+
+
+
+<button 
+class="btn btn-success"
+onclick="exportarCarnetPDF()">
+
+<i class="fa-solid fa-file-pdf"></i>
+
+PDF
+
+</button>
+
+
+
+<button 
+class="btn btn-secondary"
+onclick="volver()">
+
+<i class="fa-solid fa-arrow-left"></i>
+
+Volver
+
+</button>
+
+
+</div>
+
+
+
+
+
+<!--====================================================
+CARNET
+=====================================================-->
+
+<div id="carnet" class="carnet-card">
+
+
+
+<!-- CABECERA -->
+
+<div class="carnet-header">
+
+
+<img 
+src="imagenes/logo.png"
+class="carnet-logo"
+alt="Logo Institucional">
+
+
+<div class="institucion">
+
+
+<h2>
+INSTITUCIÓN EDUCATIVA
+</h2>
+
+
+<h1>
+MAESTRO ARENAS BETANCUR
+</h1>
+
+
+<p>
+PUNTUALIXSCAN
+</p>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+<!--====================================================
+FOTO
+=====================================================-->
+
+<div class="foto-container">
+
+
+<img
+
+id="fotoEstudiante"
+
+src="imagenes/usuario.png"
+
+class="foto-estudiante"
+
+alt="Foto estudiante"
+
+
+>
+
+
+</div>
+
+
+
+
+
+<!--====================================================
+INFORMACIÓN
+=====================================================-->
+
+<div class="datos-estudiante">
+
+
+<h2 id="nombreEstudiante">
+
+Nombre del estudiante
+
+</h2>
+
+
+
+<div class="dato">
+
+<i class="fa-solid fa-id-card"></i>
+
+
+<span>
+
+Documento:
+
+</span>
+
+
+<strong id="documentoEstudiante">
+
+--------
+
+</strong>
+
+
+</div>
+
+
+
+
+
+<div class="dato">
+
+<i class="fa-solid fa-school"></i>
+
+
+<span>
+
+Curso:
+
+</span>
+
+
+<strong id="cursoEstudiante">
+
+--------
+
+</strong>
+
+
+</div>
+
+
+
+
+
+<div class="dato">
+
+<i class="fa-solid fa-barcode"></i>
+
+
+<span>
+
+Código:
+
+</span>
+
+
+<strong id="codigoEstudiante">
+
+--------
+
+</strong>
+
+
+</div>
+
+
+
+</div>
+<!--====================================================
+QR DEL ESTUDIANTE
+=====================================================-->
+
+<div class="qr-container">
+
+
+<div id="qrCarnet"></div>
+
+
+<p>
+
+Código de acceso
+
+</p>
+
+
+</div>
+
+
+
+
+
+<!--====================================================
+PIE INSTITUCIONAL
+=====================================================-->
+
+<div class="carnet-footer">
+
+
+<p>
+
+Este carnet pertenece exclusivamente al estudiante registrado
+en el sistema PUNTUALIXSCAN.
+
+</p>
+
+
+<span>
+
+Control institucional de asistencia mediante código QR
+
+</span>
+
+
+</div>
+
+
+
+
+
+<!--====================================================
+FIRMA / SELLO
+=====================================================-->
+
+<div class="firma-area">
+
+
+<div>
+
+
+<hr>
+
+
+<p>
+
+Firma estudiante
+
+</p>
+
+
+</div>
+
+
+
+<div>
+
+
+<hr>
+
+
+<p>
+
+Institución
+
+</p>
+
+
+</div>
+
+
+
+</div>
+
+
+
+
+
+</div>
+
+<!-- FIN CARNET -->
+
+
+
+
+
+</div>
+
+<!-- FIN CONTENEDOR -->
+
+
+
+
+
+<!--====================================================
+LIBRERÍAS
+=====================================================-->
+
+
+
+<!-- SUPABASE -->
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+
+
+<!-- QR -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+
+
+<!-- SWEETALERT -->
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+
+
+<!-- PDF -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+
+
+
+
+<!-- CONFIGURACIÓN SUPABASE -->
+
+<script src="supabase.js"></script>
+
+
+
+<!-- FUNCIONES GLOBALES -->
+
+<script src="credencial.js"></script>
+
+
+
+<!-- FUNCIONES CARNET -->
+
+<script src="carnet.js"></script>
+
+
+
+</body>
+
+
+</html>
