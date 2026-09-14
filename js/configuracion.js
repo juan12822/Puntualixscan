@@ -1,5 +1,5 @@
 /* =========================================================
-   EDUACCESS ENTERPRISE
+   PUNTUALIXSCAN ENTERPRISE
    CONFIGURACIÓN INSTITUCIONAL
    ========================================================= */
 
@@ -14,7 +14,7 @@ const Configuracion = (() => {
     ===================================================== */
 
     const STORAGE_KEY =
-        "eduaccess.configuracion";
+        "puntualixscan.configuracion";
 
 
     let inicializado =
@@ -1007,7 +1007,7 @@ const Configuracion = (() => {
                     icono,
 
                 title:
-                    "EduAccess",
+                    "Puntualixscan",
 
                 text:
                     texto,
@@ -1155,5 +1155,5 @@ const Configuracion = (() => {
    COMPATIBILIDAD
 ========================================================= */
 
-window.EduAccessConfiguracion =
+window.PuntualixscanConfiguracion =
     Configuracion;

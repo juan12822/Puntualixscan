@@ -40,7 +40,7 @@
             1,
 
         rememberKey:
-            "eduaccess.remember",
+            "puntualixscan.remember",
 
         userKey:
             "usuario"

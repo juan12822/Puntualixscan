@@ -1,7 +1,7 @@
 "use strict";
 
 /* ============================================================
-   EDUACCESS
+   PUNTUALIXSCAN
    MÓDULO PROFESIONAL DE ESTUDIANTES
    ============================================================ */
 
@@ -2862,7 +2862,7 @@ function imprimirQR() {
         <body>
 
             <h1>
-                EduAccess
+                Puntualixscan
             </h1>
 
             <h2>

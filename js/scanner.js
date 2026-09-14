@@ -1,5 +1,5 @@
 /* ============================================================
-   EDUACCESS ENTERPRISE
+   PUNTUALIXSCAN ENTERPRISE
    SCANNER QR - CONTROL DE ASISTENCIA
    VERSION PROFESIONAL ESTABLE
    ============================================================ */
@@ -1797,7 +1797,7 @@ function inicializarScanner() {
     );
 
     console.log(
-        "EDUACCESS SCANNER: módulo iniciado correctamente."
+        "PUNTUALIXSCAN SCANNER: módulo iniciado correctamente."
     );
 }
 

@@ -1,5 +1,5 @@
 /* =========================================================
-   EDUACCESS ENTERPRISE
+   PUNTUALIXSCAN ENTERPRISE
    CREDENCIAL INSTITUCIONAL
    ========================================================= */
 
@@ -589,7 +589,7 @@ function mostrarCredencial(
     const codigo =
         estudiante.codigoqr ||
         estudiante.documento ||
-        "EDUACCESS";
+        "PUNTUALIXSCAN";
 
 
     ponerTexto(
@@ -933,7 +933,7 @@ function descargarPDF() {
 
 
         pdf.text(
-            "EduAccess Enterprise",
+            "Puntualixscan Enterprise",
             40,
             56
         );
@@ -1086,7 +1086,7 @@ function descargarPDF() {
             String(
                 estudiante.codigoqr ||
                 estudiante.documento ||
-                "EDUACCESS"
+                "PUNTUALIXSCAN"
             ).slice(
                 0,
                 25
@@ -1561,7 +1561,7 @@ function notificar(
    API GLOBAL
 ========================================================= */
 
-window.EduAccessCredencial = {
+window.PuntualixscanCredencial = {
 
     actualizar:
         cargarCredencial,

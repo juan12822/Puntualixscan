@@ -1,5 +1,5 @@
 // ============================================================
-// EDUACCESS ENTERPRISE
+// PUNTUALIXSCAN ENTERPRISE
 // DASHBOARD PROFESIONAL
 // VERSION CORREGIDA
 // ============================================================
@@ -36,7 +36,7 @@
     if (!db) {
 
         console.error(
-            "EduAccess: no se encontró el cliente de Supabase."
+            "Puntualixscan: no se encontró el cliente de Supabase."
         );
 
         return;

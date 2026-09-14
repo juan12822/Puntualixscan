@@ -53,7 +53,7 @@
         schema: "public",
 
         storageKey:
-            "eduaccess.enterprise.auth",
+            "puntualixscan.enterprise.auth",
 
         locale:
             "es-CO",

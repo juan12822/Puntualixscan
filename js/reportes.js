@@ -1,5 +1,5 @@
 /* =========================================================
-   EDUACCESS ENTERPRISE
+   PUNTUALIXSCAN ENTERPRISE
    REPORTES DE ASISTENCIA
    ========================================================= */
 
@@ -1713,7 +1713,7 @@ function exportarExcel() {
 
     XLSX.writeFile(
         libro,
-        "Reporte_Asistencia_EduAccess.xlsx"
+        "Reporte_Asistencia_Puntualixscan.xlsx"
     );
 
 }
@@ -1781,7 +1781,7 @@ function exportarPDF() {
 
 
     pdf.text(
-        "EduAccess Enterprise",
+        "Puntualixscan Enterprise",
         14,
         15
     );
@@ -1927,7 +1927,7 @@ function exportarPDF() {
 
 
     pdf.save(
-        "Reporte_Asistencia_EduAccess.pdf"
+        "Reporte_Asistencia_Puntualixscan.pdf"
     );
 
 }
@@ -2490,7 +2490,7 @@ function notificarAviso(
    API GLOBAL
 ========================================================= */
 
-window.EduAccessReportes = {
+window.PuntualixscanReportes = {
 
     actualizar:
         cargarReportes,
