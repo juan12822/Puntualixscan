@@ -1797,6 +1797,191 @@
 
 
     /* ========================================================
+       PERMISOS POR ROL
+       ======================================================== */
+
+    function normalizarRol(
+        value
+    ) {
+
+        return String(
+            value || ""
+        )
+            .trim()
+            .toLowerCase();
+    }
+
+
+    function paginaActual() {
+
+        const href =
+            global.location?.href || "";
+
+        return String(
+            href
+                .split("?")[0]
+                .split("#")[0]
+                .split("/").pop() || ""
+        ).toLowerCase();
+    }
+
+
+    function obtenerUsuarioActual() {
+
+        try {
+
+            const usuario =
+                safeJsonParse(
+                    storage.get(
+                        "usuario"
+                    ),
+                    null
+                );
+
+            if (usuario) {
+                return usuario;
+            }
+
+        } catch (_) {
+
+            // Ignorado.
+        }
+
+        return null;
+    }
+
+
+    function rolUsuarioActual() {
+
+        const usuario =
+            obtenerUsuarioActual();
+
+        const rol =
+            usuario?.rol ||
+            usuario?.tipo ||
+            usuario?.user_metadata?.rol ||
+            usuario?.user_metadata?.tipo ||
+            "";
+
+        return normalizarRol(
+            rol
+        );
+    }
+
+
+    function paginasPermitidasPorRol(
+        rol
+    ) {
+
+        const base = [
+            "dashboard.html",
+            "estudiantes.html",
+            "scanner.html",
+            "reportes.html",
+            "credencial.html",
+            "configuracion.html"
+        ];
+
+        if (rol === "estudiante") {
+            return [
+                "reportes.html"
+            ];
+        }
+
+        if (rol === "profesor") {
+            return base;
+        }
+
+        if (rol === "administrador") {
+            return base;
+        }
+
+        return base;
+    }
+
+
+    function tienePermisoParaPagina(
+        pagina,
+        rol
+    ) {
+
+        const nombrePagina =
+            String(
+                pagina || ""
+            )
+                .toLowerCase();
+
+        if (!nombrePagina) {
+            return true;
+        }
+
+        return paginasPermitidasPorRol(
+            rol
+        ).includes(
+            nombrePagina
+        );
+    }
+
+
+    function aplicarPermisosDeVista() {
+
+        const rol =
+            rolUsuarioActual();
+
+        if (!rol) {
+            return;
+        }
+
+        const pagina =
+            paginaActual();
+
+        const permitido =
+            tienePermisoParaPagina(
+                pagina,
+                rol
+            );
+
+        if (rol === "estudiante" && !permitido) {
+            global.location.replace(
+                "reportes.html"
+            );
+            return;
+        }
+
+        document.querySelectorAll(
+            ".nav-link"
+        ).forEach(
+            link => {
+
+                const href =
+                    String(
+                        link.getAttribute(
+                            "href"
+                        ) || ""
+                    );
+
+                const nombreEnlace =
+                    href.split("?")[0]
+                        .split("#")[0]
+                        .split("/").pop()
+                        .toLowerCase();
+
+                if (
+                    nombreEnlace &&
+                    nombreEnlace.endsWith(".html") &&
+                    !tienePermisoParaPagina(
+                        nombreEnlace,
+                        rol
+                    )
+                ) {
+                    link.style.display = "none";
+                }
+            }
+        );
+    }
+
+
+    /* ========================================================
        PROTEGER PÁGINA
        ======================================================== */
 
@@ -1839,6 +2024,44 @@
 
                 null
             );
+
+        const usuarioActual =
+            legacyUser ||
+            session?.user ||
+            null;
+
+        const rol =
+            normalizarRol(
+                usuarioActual?.rol ||
+                usuarioActual?.tipo ||
+                usuarioActual?.user_metadata?.rol ||
+                usuarioActual?.user_metadata?.tipo ||
+                ""
+            );
+
+        const pagina =
+            paginaActual();
+
+        if (
+            rol === "estudiante" &&
+            !tienePermisoParaPagina(
+                pagina,
+                rol
+            )
+        ) {
+
+            if (
+                options.redirect !==
+                false
+            ) {
+
+                global.location.replace(
+                    "reportes.html"
+                );
+            }
+
+            return false;
+        }
 
 
         /*
@@ -2046,9 +2269,35 @@
 
 
                 limpiarCache:
-                    limpiarCache
+                    limpiarCache,
+
+                permisos:
+                    Object.freeze({
+                        normalizarRol,
+                        obtenerUsuarioActual,
+                        rolUsuarioActual,
+                        paginaActual,
+                        tienePermisoParaPagina,
+                        paginasPermitidasPorRol,
+                        aplicarPermisosDeVista
+                    })
             }
         );
+
+
+    if (
+        document.readyState === "loading"
+    ) {
+
+        document.addEventListener(
+            "DOMContentLoaded",
+            aplicarPermisosDeVista
+        );
+
+    } else {
+
+        aplicarPermisosDeVista();
+    }
 
 
     /* ========================================================
