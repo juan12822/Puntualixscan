@@ -811,6 +811,111 @@
 
 
     /* ========================================================
+       LOGIN LOCAL (USUARIOS REGISTRADOS)
+       ======================================================== */
+
+    function getRegisteredUsers() {
+
+        try {
+
+            return JSON.parse(
+                global.localStorage.getItem(
+                    "usuariosPuntualixscan"
+                ) || "[]"
+            );
+
+        } catch (_) {
+
+            return [];
+        }
+    }
+
+
+    function getSelectedRole() {
+
+        const value =
+            document.getElementById(
+                "tipoUsuario"
+            )?.value || "estudiante";
+
+        return String(value)
+            .trim()
+            .toLowerCase();
+    }
+
+
+    function tryLocalLogin(
+        email,
+        password
+    ) {
+
+        const selectedRole =
+            getSelectedRole();
+
+        const usuarios =
+            getRegisteredUsers();
+
+        const usuarioLocal =
+            usuarios.find(
+                usuario => {
+
+                    const correo =
+                        String(
+                            usuario?.correo || ""
+                        )
+                            .trim()
+                            .toLowerCase();
+
+                    const clave =
+                        String(
+                            usuario?.clave || ""
+                        );
+
+                    const tipo =
+                        String(
+                            usuario?.tipo ||
+                            usuario?.rol ||
+                            "estudiante"
+                        )
+                            .trim()
+                            .toLowerCase();
+
+                    return (
+                        correo === email &&
+                        clave === password &&
+                        tipo === selectedRole
+                    );
+                }
+            );
+
+        if (!usuarioLocal) {
+            return null;
+        }
+
+        const sessionUser = {
+            id: usuarioLocal.id || email,
+            nombre: usuarioLocal.nombre || usuarioLocal.correo || "Usuario",
+            correo: usuarioLocal.correo || email,
+            email: usuarioLocal.correo || email,
+            rol: usuarioLocal.tipo || usuarioLocal.rol || selectedRole,
+            tipo: usuarioLocal.tipo || usuarioLocal.rol || selectedRole
+        };
+
+        global.localStorage.setItem(
+            CONFIG.userKey,
+            JSON.stringify(sessionUser)
+        );
+
+        global.localStorage.setItem(
+            CONFIG.rememberKey,
+            String(Boolean(elements?.remember?.checked))
+        );
+
+        return sessionUser;
+    }
+
+
+    /* ========================================================
        INICIAR SESIÓN
        ======================================================== */
 
@@ -885,6 +990,39 @@
             }
 
 
+            return;
+        }
+
+
+        const localUser =
+            tryLocalLogin(
+                email,
+                password
+            );
+
+        if (
+            localUser
+        ) {
+
+            await notify({
+
+                icon:
+                    "success",
+
+                title:
+                    "Acceso concedido",
+
+                text:
+                    `Bienvenido ${localUser.nombre}.`,
+
+                timer:
+                    900,
+
+                showConfirmButton:
+                    false
+            });
+
+            redirectToDashboard();
             return;
         }
 
