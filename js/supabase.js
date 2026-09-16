@@ -582,9 +582,24 @@
 
     function clearApplicationSession() {
 
-        storage.remove(
-            "usuario"
-        );
+        try {
+            storage.remove(
+                "usuario"
+            );
+        } catch (_) {
+            localStorage.removeItem(
+                "usuario"
+            );
+        }
+
+
+        try {
+            localStorage.removeItem(
+                "usuariosPuntualixscan"
+            );
+        } catch (_) {
+            // Nada que limpiar.
+        }
 
 
         cache.clear();
@@ -1923,7 +1938,69 @@
     }
 
 
+    function actualizarSidebarUsuario() {
+
+        const usuario =
+            obtenerUsuarioActual();
+
+        if (!usuario) {
+            return;
+        }
+
+        const nombre =
+            usuario.nombre ||
+            usuario.correo ||
+            usuario.email ||
+            "Usuario";
+
+        const rol =
+            normalizarRol(
+                usuario.rol ||
+                usuario.tipo ||
+                usuario.user_metadata?.rol ||
+                usuario.user_metadata?.tipo ||
+                "Usuario"
+            );
+
+        const nombreFormateado =
+            String(nombre).trim();
+
+        const rolFormateado =
+            rol
+                ? rol.charAt(0).toUpperCase() + rol.slice(1)
+                : "Usuario";
+
+        const candidatosNombre = [
+            document.getElementById("nombreUsuario"),
+            document.getElementById("usuarioNombre"),
+            document.querySelector(".usuario h4")
+        ];
+
+        const candidatosRol = [
+            document.getElementById("rolUsuario"),
+            document.getElementById("usuarioRol"),
+            document.querySelector(".usuario p")
+        ];
+
+        for (const elemento of candidatosNombre) {
+            if (elemento) {
+                elemento.textContent =
+                    nombreFormateado;
+            }
+        }
+
+        for (const elemento of candidatosRol) {
+            if (elemento) {
+                elemento.textContent =
+                    rolFormateado;
+            }
+        }
+    }
+
+
     function aplicarPermisosDeVista() {
+
+        actualizarSidebarUsuario();
 
         const rol =
             rolUsuarioActual();
@@ -1952,6 +2029,14 @@
             ".nav-link"
         ).forEach(
             link => {
+
+                if (
+                    link.classList.contains(
+                        "logout"
+                    )
+                ) {
+                    return;
+                }
 
                 const href =
                     String(
