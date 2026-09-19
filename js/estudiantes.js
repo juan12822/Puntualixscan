@@ -100,7 +100,9 @@ const elementos = {
 
     documento: $("documento"),
 
-    curso: $("curso"),
+    grado: $("grado"),
+
+    grupo: $("grupo"),
 
     correo: $("correo"),
 
@@ -1509,11 +1511,25 @@ function obtenerDatosFormulario() {
                 ""
             ).trim(),
 
-        curso:
+        grado:
             String(
-                elementos.curso?.value ||
+                elementos.grado?.value ||
                 ""
             ).trim(),
+
+        grupo:
+            String(
+                elementos.grupo?.value ||
+                ""
+            ).trim(),
+
+        curso:
+            [
+                elementos.grado?.value,
+                elementos.grupo?.value
+            ]
+                .filter(Boolean)
+                .join("-"),
 
         correo:
             String(
@@ -1558,10 +1574,10 @@ function validarDatos(
     }
 
 
-    if (!datos.curso) {
+    if (!datos.grado || !datos.grupo) {
 
         throw new Error(
-            "El curso es obligatorio."
+            "Selecciona el grado y el grupo del estudiante."
         );
 
     }
@@ -1980,8 +1996,17 @@ function editarEstudiante(
         "";
 
 
-    elementos.curso.value =
+    const curso = String(
         estudiante.curso ||
+        ""
+    ).split("-");
+
+    elementos.grado.value =
+        curso[0] ||
+        "";
+
+    elementos.grupo.value =
+        curso[1] ||
         "";
 
 

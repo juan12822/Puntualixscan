@@ -472,24 +472,34 @@
 
 
 
-                    <!-- CURSO -->
+                    <!-- GRADO Y GRUPO -->
 
                     <div
                         class="field"
                         style="margin-top:13px;"
                     >
 
-                        <label for="curso">
-                            Curso *
+                        <label for="grado">
+                            Grado y grupo *
                         </label>
 
-                        <input
-                            type="text"
-                            id="curso"
-                            placeholder="Ejemplo: 10-A"
-                            maxlength="30"
-                            required
-                        >
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                            <select id="grado" required aria-label="Grado">
+                                <option value="">Grado</option>
+                                <option value="6">6</option>
+                                <option value="7">7</option>
+                                <option value="8">8</option>
+                                <option value="9">9</option>
+                                <option value="10">10</option>
+                                <option value="11">11</option>
+                            </select>
+                            <select id="grupo" required aria-label="Grupo">
+                                <option value="">Grupo</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                            </select>
+                        </div>
 
                     </div>
 
