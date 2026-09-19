@@ -338,6 +338,66 @@ function configurarEventos() {
    CARGAR REPORTES
 ========================================================= */
 
+async function obtenerFiltroEstudiante(client) {
+
+    let usuario;
+
+    try {
+
+        usuario = JSON.parse(
+            localStorage.getItem("usuario") ||
+            "null"
+        );
+
+    } catch (error) {
+
+        usuario = null;
+
+    }
+
+    const rol = String(
+        usuario?.rol ||
+        usuario?.tipo ||
+        ""
+    ).trim().toLowerCase();
+
+    if (rol !== "estudiante") {
+
+        return null;
+
+    }
+
+    const correo = String(
+        usuario?.correo ||
+        usuario?.email ||
+        ""
+    ).trim();
+
+    if (!correo) {
+
+        throw new Error(
+            "La sesión del estudiante no tiene un correo válido."
+        );
+
+    }
+
+    const { data, error } = await client
+        .from("estudiantes")
+        .select("id")
+        .ilike("correo", correo)
+        .limit(1)
+        .maybeSingle();
+
+    if (error) {
+
+        throw error;
+
+    }
+
+    return data?.id || "__sin_estudiante__";
+
+}
+
 async function cargarReportes() {
 
 
@@ -373,26 +433,34 @@ async function cargarReportes() {
         const client =
             obtenerCliente();
 
+        const filtroEstudiante =
+            await obtenerFiltroEstudiante(client);
+
+        let consulta = client
+            .from("asistencia")
+            .select(
+                "*, estudiantes(foto)"
+            );
+
+        if (filtroEstudiante) {
+
+            consulta = consulta.eq(
+                "estudiante_id",
+                filtroEstudiante
+            );
+
+        }
+
 
         const {
             data,
             error
-        } =
-
-            await client
-
-                .from("asistencia")
-
-                .select(
-                    "*, estudiantes(foto)"
-                )
-
-                .order(
-                    "fecha_hora",
-                    {
-                        ascending:false
-                    }
-                );
+        } = await consulta.order(
+                "fecha_hora",
+                {
+                    ascending:false
+                }
+            );
 
 
         if (error) {
