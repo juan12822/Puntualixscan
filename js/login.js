@@ -720,6 +720,18 @@
         }
 
 
+        if (
+            message.includes(
+                "rol seleccionado"
+            )
+        ) {
+
+            return (
+                "El correo o documento no pertenece al rol seleccionado."
+            );
+        }
+
+
         return (
             "No fue posible iniciar sesión. " +
             "Verifica tus credenciales e inténtalo nuevamente."
@@ -732,7 +744,8 @@
        ======================================================== */
 
     async function prepareAuthenticatedUser(
-        user
+        user,
+        expectedRole = ""
     ) {
 
         if (
@@ -749,6 +762,34 @@
             await loadProfile(
                 user
             );
+
+        if (
+            expectedRole &&
+            (
+                !profile ||
+                !roleMatches(
+                    profile.rol,
+                    expectedRole
+                )
+            )
+        ) {
+
+            try {
+
+                await global.PUNTUALIXSCAN.auth.signOut();
+
+            } catch (signOutError) {
+
+                global.PUNTUALIXSCAN.logger?.warn(
+                    "No se pudo cerrar la sesión con rol incorrecto.",
+                    signOutError
+                );
+            }
+
+            throw new Error(
+                "El usuario no está registrado con el rol seleccionado."
+            );
+        }
 
 
         const legacyUser =
@@ -890,6 +931,33 @@
     }
 
 
+    function normalizeRole(
+        value
+    ) {
+
+        const role = String(
+            value ||
+            ""
+        )
+            .trim()
+            .toLowerCase();
+
+        return role === "admin"
+            ? "administrador"
+            : role;
+    }
+
+
+    function roleMatches(
+        actualRole,
+        expectedRole
+    ) {
+
+        return normalizeRole(actualRole) ===
+            normalizeRole(expectedRole);
+    }
+
+
     function tryLocalLogin(
         email,
         password
@@ -918,18 +986,17 @@
                         );
 
                     const tipo =
-                        String(
-                            usuario?.tipo ||
-                            usuario?.rol ||
-                            "estudiante"
-                        )
-                            .trim()
-                            .toLowerCase();
+                        usuario?.tipo ||
+                        usuario?.rol ||
+                        "estudiante";
 
                     return (
                         correo === email &&
                         clave === password &&
-                        tipo === selectedRole
+                        roleMatches(
+                            tipo,
+                            selectedRole
+                        )
                     );
                 }
             );
@@ -1119,7 +1186,8 @@
 
 
             await prepareAuthenticatedUser(
-                user
+                user,
+                getSelectedRole()
             );
 
 
