@@ -73,18 +73,6 @@ document.addEventListener('DOMContentLoaded', () => {
             throw new Error('Supabase no devolvió el usuario registrado.');
         }
 
-        const { error: profileError } = await client
-            .from('usuarios')
-            .insert({
-                nombre: datos.nombre,
-                correo: datos.correo,
-                rol: datos.tipo
-            });
-
-        if (profileError) {
-            throw profileError;
-        }
-
         return authData;
     }
 
