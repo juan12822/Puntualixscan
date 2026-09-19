@@ -486,6 +486,7 @@
     ) {
 
         if (
+            !user?.id &&
             !user?.email
         ) {
 
@@ -495,7 +496,7 @@
 
         try {
 
-            const result =
+            let result =
                 await global.PUNTUALIXSCAN.data.select(
 
                     global.PUNTUALIXSCAN.TABLES.USUARIOS,
@@ -506,9 +507,7 @@
                             "*",
 
                         filters: {
-
-                            correo:
-                                user.email
+                            id: user.id
                         },
 
                         maybeSingle:
@@ -517,10 +516,20 @@
                 );
 
 
-            return (
-                result?.data ||
-                null
-            );
+            if (!result?.data && user.email) {
+                result = await global.PUNTUALIXSCAN.data.select(
+                    global.PUNTUALIXSCAN.TABLES.USUARIOS,
+                    {
+                        columns: "*",
+                        filters: {
+                            correo: user.email
+                        },
+                        maybeSingle: true
+                    }
+                );
+            }
+
+            return result?.data || null;
 
         } catch (
             error
@@ -744,7 +753,8 @@
        ======================================================== */
 
     async function prepareAuthenticatedUser(
-        user
+        user,
+        expectedRole = ""
     ) {
 
         if (
@@ -761,6 +771,34 @@
             await loadProfile(
                 user
             );
+
+        const actualRole =
+            profile?.rol ||
+            profile?.tipo ||
+            user?.user_metadata?.rol ||
+            user?.user_metadata?.tipo;
+
+        if (
+            expectedRole &&
+            !roleMatches(
+                actualRole,
+                expectedRole
+            )
+        ) {
+
+            try {
+                await global.PUNTUALIXSCAN.auth.signOut();
+            } catch (signOutError) {
+                global.PUNTUALIXSCAN.logger?.warn(
+                    "No se pudo cerrar la sesión con rol incorrecto.",
+                    signOutError
+                );
+            }
+
+            throw new Error(
+                "El usuario no está registrado con el rol seleccionado."
+            );
+        }
 
         const legacyUser =
             createLegacyUser(
@@ -901,10 +939,40 @@
     }
 
 
+    function normalizeRole(
+        value
+    ) {
+
+        const role = String(
+            value ||
+            ""
+        )
+            .trim()
+            .toLowerCase();
+
+        return role === "admin"
+            ? "administrador"
+            : role;
+    }
+
+
+    function roleMatches(
+        actualRole,
+        expectedRole
+    ) {
+
+        return normalizeRole(actualRole) ===
+            normalizeRole(expectedRole);
+    }
+
+
     function tryLocalLogin(
         email,
         password
     ) {
+
+        const selectedRole =
+            getSelectedRole();
 
         const usuarios =
             getRegisteredUsers();
@@ -925,9 +993,19 @@
                             usuario?.clave || ""
                         );
 
+
+                    const tipo =
+                        usuario?.tipo ||
+                        usuario?.rol ||
+                        "estudiante";
+
                     return (
                         correo === email &&
-                        clave === password
+                        clave === password &&
+                        roleMatches(
+                            tipo,
+                            selectedRole
+                        )
                     );
                 }
             );
@@ -1117,7 +1195,8 @@
 
 
             await prepareAuthenticatedUser(
-                user
+                user,
+                getSelectedRole()
             );
 
 
