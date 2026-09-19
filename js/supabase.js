@@ -40,7 +40,7 @@
          * CONSERVA AQUÍ EXACTAMENTE
          * la URL que ya tienes actualmente.
          */
-        url: "https://dejuztyypfxtejfjfmlp.supabase.co",
+        url: "https://gkqbcyzexmuntreatgfy.supabase.co",
 
         /*
          * CONSERVA AQUÍ EXACTAMENTE
@@ -48,7 +48,7 @@
          *
          * NO la reemplaces por una service_role key.
          */
-        anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlanV6dHl5cGZ4dGVqZmpmbWxwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU5NTU2MTksImV4cCI6MjEwMTUzMTYxOX0.l_dcWMPBWj1OfZK5_SefNX5MUztewJRYUZjPuKhFQn4",
+        anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrcWJjeXpleG11bnRyZWF0Z2Z5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk2NTA0MTUsImV4cCI6MjEwNTIyNjQxNX0.RACPXD3EwjKxlUINIR2OZs8C90BQMbH_2XlpY45dBvc",
 
         schema: "public",
 
