@@ -25,7 +25,28 @@ document.addEventListener('DOMContentLoaded', () => {
         button.addEventListener('click', () => setRole(button.dataset.role));
     });
 
-    form.addEventListener('submit', (event) => {
+    async function verificarEstudianteRegistrado(correo) {
+        const client = window.PUNTUALIXSCAN?.client;
+
+        if (!client) {
+            throw new Error('No se pudo conectar con la base de datos de estudiantes.');
+        }
+
+        const { data, error } = await client
+            .from('estudiantes')
+            .select('id')
+            .ilike('correo', correo)
+            .limit(1)
+            .maybeSingle();
+
+        if (error) {
+            throw error;
+        }
+
+        return Boolean(data);
+    }
+
+    form.addEventListener('submit', async (event) => {
         event.preventDefault();
 
         const nombre = document.getElementById('nombreCompleto').value.trim();
@@ -54,6 +75,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 confirmButtonColor: '#165dff'
             });
             return;
+        }
+
+        if (tipo === 'estudiante') {
+            try {
+                const estudianteExiste = await verificarEstudianteRegistrado(correo);
+
+                if (!estudianteExiste) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Estudiante no registrado',
+                        text: 'El correo debe estar registrado previamente en la base de datos de estudiantes.',
+                        confirmButtonColor: '#165dff'
+                    });
+                    return;
+                }
+            } catch (error) {
+                console.error('Error verificando estudiante:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'No se pudo validar el correo',
+                    text: 'No fue posible consultar la base de datos de estudiantes. Inténtalo nuevamente.',
+                    confirmButtonColor: '#165dff'
+                });
+                return;
+            }
         }
 
         const usuarios = JSON.parse(localStorage.getItem('usuariosPuntualixscan') || '[]');
