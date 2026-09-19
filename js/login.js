@@ -225,6 +225,52 @@
     }
 
 
+    async function resolveLoginEmail(
+        identifier
+    ) {
+
+        const value = String(
+            identifier ||
+            ""
+        ).trim();
+
+        if (
+            global.PUNTUALIXSCAN?.utils?.isEmail(value)
+        ) {
+
+            return normalizeEmail(value);
+
+        }
+
+        const client =
+            global.PUNTUALIXSCAN?.client;
+
+        if (!client) {
+
+            throw new Error(
+                "No se pudo conectar con Supabase."
+            );
+
+        }
+
+        const { data, error } =
+            await client.rpc(
+                "obtener_correo_por_documento",
+                {
+                    documento_buscar: value
+                }
+            );
+
+        if (error) {
+
+            throw error;
+
+        }
+
+        return normalizeEmail(data);
+    }
+
+
     /* ========================================================
        VALIDAR CREDENCIALES
        ======================================================== */
@@ -935,10 +981,11 @@
         }
 
 
-        const email =
-            normalizeEmail(
-                elements.email.value
-            );
+        const identifier =
+            String(
+                elements.email.value ||
+                ""
+            ).trim();
 
 
         const password =
@@ -948,11 +995,25 @@
             );
 
 
-        const validationMessage =
-            validateCredentials(
-                email,
-                password
-            );
+        let email = "";
+        let validationMessage = "";
+
+        try {
+
+            email = await resolveLoginEmail(identifier);
+
+            validationMessage =
+                validateCredentials(
+                    email,
+                    password
+                );
+
+        } catch (error) {
+
+            validationMessage =
+                "No encontramos un usuario con ese correo o documento.";
+
+        }
 
 
         if (
