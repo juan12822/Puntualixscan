@@ -744,8 +744,7 @@
        ======================================================== */
 
     async function prepareAuthenticatedUser(
-        user,
-        expectedRole = ""
+        user
     ) {
 
         if (
@@ -762,43 +761,6 @@
             await loadProfile(
                 user
             );
-
-        if (
-            expectedRole &&
-            (
-                !(
-                    profile?.rol ||
-                    profile?.tipo ||
-                    user?.user_metadata?.rol ||
-                    user?.user_metadata?.tipo
-                ) ||
-                !roleMatches(
-                    profile?.rol ||
-                    profile?.tipo ||
-                    user?.user_metadata?.rol ||
-                    user?.user_metadata?.tipo,
-                    expectedRole
-                )
-            )
-        ) {
-
-            try {
-
-                await global.PUNTUALIXSCAN.auth.signOut();
-
-            } catch (signOutError) {
-
-                global.PUNTUALIXSCAN.logger?.warn(
-                    "No se pudo cerrar la sesión con rol incorrecto.",
-                    signOutError
-                );
-            }
-
-            throw new Error(
-                "El usuario no está registrado con el rol seleccionado."
-            );
-        }
-
 
         const legacyUser =
             createLegacyUser(
@@ -939,40 +901,10 @@
     }
 
 
-    function normalizeRole(
-        value
-    ) {
-
-        const role = String(
-            value ||
-            ""
-        )
-            .trim()
-            .toLowerCase();
-
-        return role === "admin"
-            ? "administrador"
-            : role;
-    }
-
-
-    function roleMatches(
-        actualRole,
-        expectedRole
-    ) {
-
-        return normalizeRole(actualRole) ===
-            normalizeRole(expectedRole);
-    }
-
-
     function tryLocalLogin(
         email,
         password
     ) {
-
-        const selectedRole =
-            getSelectedRole();
 
         const usuarios =
             getRegisteredUsers();
@@ -993,18 +925,9 @@
                             usuario?.clave || ""
                         );
 
-                    const tipo =
-                        usuario?.tipo ||
-                        usuario?.rol ||
-                        "estudiante";
-
                     return (
                         correo === email &&
-                        clave === password &&
-                        roleMatches(
-                            tipo,
-                            selectedRole
-                        )
+                        clave === password
                     );
                 }
             );
@@ -1194,8 +1117,7 @@
 
 
             await prepareAuthenticatedUser(
-                user,
-                getSelectedRole()
+                user
             );
 
 
