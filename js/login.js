@@ -766,9 +766,17 @@
         if (
             expectedRole &&
             (
-                !profile ||
+                !(
+                    profile?.rol ||
+                    profile?.tipo ||
+                    user?.user_metadata?.rol ||
+                    user?.user_metadata?.tipo
+                ) ||
                 !roleMatches(
-                    profile.rol,
+                    profile?.rol ||
+                    profile?.tipo ||
+                    user?.user_metadata?.rol ||
+                    user?.user_metadata?.tipo,
                     expectedRole
                 )
             )
