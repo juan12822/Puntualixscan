@@ -158,6 +158,8 @@ const elementos = {
 
     documentoQR: $("documentoQR"),
 
+    codigoUnicoQR: $("codigoUnicoQR"),
+
     codigoQR: $("codigoQR"),
 
     btnDescargarQR: $("btnDescargarQR"),
@@ -2520,6 +2522,14 @@ function mostrarQR(
     actualizarTexto(
         elementos.documentoQR,
         estudiante.documento ||
+        ""
+    );
+
+    actualizarTexto(
+        elementos.codigoUnicoQR,
+        estudiante.codigoqr ||
+        estudiante.documento ||
+        estudiante.id ||
         ""
     );
 

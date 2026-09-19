@@ -33,6 +33,8 @@ const reader = $("reader");
 const btnIniciar = $("btnIniciar");
 const btnDetener = $("btnDetener");
 const btnRegistrar = $("btnRegistrar");
+const codigoManual = $("codigoManual");
+const btnBuscarCodigo = $("btnBuscarCodigo");
 
 const estudianteDiv = $("estudiante");
 const opcionesDiv = $("opciones");
@@ -743,6 +745,31 @@ async function buscarEstudiante(codigoQR) {
                 "No se pudo consultar el estudiante."
         });
     }
+}
+
+
+async function buscarEstudianteManual() {
+
+    const codigo = String(
+        codigoManual?.value ||
+        ""
+    ).trim();
+
+    if (!codigo) {
+
+        await alerta({
+            icon: "warning",
+            title: "Código requerido",
+            text: "Escribe el código único del estudiante."
+        });
+
+        codigoManual?.focus();
+        return;
+
+    }
+
+    await buscarEstudiante(codigo);
+
 }
 
 
@@ -1621,6 +1648,29 @@ function registrarEventos() {
         btnDetener.addEventListener(
             "click",
             detenerCamara
+        );
+    }
+
+    if (btnBuscarCodigo) {
+
+        btnBuscarCodigo.addEventListener(
+            "click",
+            buscarEstudianteManual
+        );
+    }
+
+    if (codigoManual) {
+
+        codigoManual.addEventListener(
+            "keydown",
+            (event) => {
+
+                if (event.key === "Enter") {
+
+                    event.preventDefault();
+                    buscarEstudianteManual();
+                }
+            }
         );
     }
 
