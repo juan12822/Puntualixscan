@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const roleInput = document.getElementById('tipoUsuario');
     const roleLabel = document.getElementById('roleLabel');
     const form = document.getElementById('formRegistro');
+    const client = window.PUNTUALIXSCAN?.client;
 
     const roleNames = {
         estudiante: 'Estudiante',
@@ -26,8 +27,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     async function verificarEstudianteRegistrado(correo) {
-        const client = window.PUNTUALIXSCAN?.client;
-
         if (!client) {
             throw new Error('No se pudo conectar con la base de datos de estudiantes.');
         }
@@ -44,6 +43,49 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         return Boolean(data);
+    }
+
+    async function registrarEnSupabase(datos) {
+        if (!client) {
+            throw new Error('No se pudo conectar con Supabase.');
+        }
+
+        const { data: authData, error: authError } = await client.auth.signUp({
+            email: datos.correo,
+            password: datos.clave,
+            options: {
+                data: {
+                    nombre: datos.nombre,
+                    rol: datos.tipo,
+                    tipo: datos.tipo,
+                    documento: datos.documento,
+                    telefono: datos.telefono,
+                    curso: datos.curso
+                }
+            }
+        });
+
+        if (authError) {
+            throw authError;
+        }
+
+        if (!authData?.user) {
+            throw new Error('Supabase no devolvió el usuario registrado.');
+        }
+
+        const { error: profileError } = await client
+            .from('usuarios')
+            .insert({
+                nombre: datos.nombre,
+                correo: datos.correo,
+                rol: datos.tipo
+            });
+
+        if (profileError) {
+            throw profileError;
+        }
+
+        return authData;
     }
 
     form.addEventListener('submit', async (event) => {
@@ -102,38 +144,33 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        const usuarios = JSON.parse(localStorage.getItem('usuariosPuntualixscan') || '[]');
-
-        const existe = usuarios.some((usuario) => usuario.correo.toLowerCase() === correo.toLowerCase());
-        if (existe) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Usuario ya existe',
-                text: 'Este correo ya está registrado en el sistema.',
-                confirmButtonColor: '#165dff'
-            });
-            return;
-        }
-
-        const nuevoUsuario = {
-            id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
+        const datos = {
             nombre,
             documento,
             correo,
             telefono,
             curso,
             clave,
-            tipo,
-            fechaRegistro: new Date().toISOString()
+            tipo
         };
 
-        usuarios.push(nuevoUsuario);
-        localStorage.setItem('usuariosPuntualixscan', JSON.stringify(usuarios));
+        try {
+            await registrarEnSupabase(datos);
+        } catch (error) {
+            console.error('Error registrando usuario en Supabase:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'No se pudo registrar el usuario',
+                text: error.message || 'Supabase rechazó el registro. Verifica los datos e inténtalo nuevamente.',
+                confirmButtonColor: '#165dff'
+            });
+            return;
+        }
 
         Swal.fire({
             icon: 'success',
             title: 'Usuario registrado',
-            text: `Se creó correctamente la cuenta de ${roleNames[tipo]}.`,
+            text: `Se creó correctamente la cuenta de ${roleNames[tipo]} en Supabase. Revisa tu correo si requiere confirmación.`,
             confirmButtonColor: '#165dff'
         }).then(() => {
             window.location.href = 'login.html';
