@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setRole(roleInput.value);
 
-    async function verificarEstudianteRegistrado(correo) {
+    async function verificarEstudianteRegistrado(correo, documento) {
         if (!client) {
             throw new Error('No se pudo conectar con la base de datos de estudiantes.');
         }
@@ -49,7 +49,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const { data, error } = await client
             .from('estudiantes')
             .select('id')
-            .ilike('correo', correo)
+            .ilike('correo', correo.trim())
+            .eq('documento', documento.trim())
             .limit(1)
             .maybeSingle();
 
@@ -136,13 +137,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (tipo === 'estudiante') {
             try {
-                const estudianteExiste = await verificarEstudianteRegistrado(correo);
+                const estudianteExiste = await verificarEstudianteRegistrado(
+                    correo,
+                    documento
+                );
 
                 if (!estudianteExiste) {
                     Swal.fire({
                         icon: 'warning',
-                        title: 'Estudiante no registrado',
-                        text: 'El correo debe estar registrado previamente en la base de datos de estudiantes.',
+                        title: 'Datos no coinciden',
+                        text: 'El correo y el documento deben coincidir con el mismo estudiante registrado en la base de datos.',
                         confirmButtonColor: '#165dff'
                     });
                     return;
@@ -151,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error('Error verificando estudiante:', error);
                 Swal.fire({
                     icon: 'error',
-                    title: 'No se pudo validar el correo',
+                    title: 'No se pudieron validar los datos',
                     text: 'No fue posible consultar la base de datos de estudiantes. Inténtalo nuevamente.',
                     confirmButtonColor: '#165dff'
                 });
