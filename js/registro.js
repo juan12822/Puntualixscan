@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setRole(roleInput.value);
 
-    async function verificarEstudianteRegistrado(correo, documento) {
+    async function verificarEstudianteRegistrado(correo, documento, curso) {
         if (!client) {
             throw new Error('No se pudo conectar con la base de datos de estudiantes.');
         }
@@ -51,6 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
             .select('id')
             .ilike('correo', correo.trim())
             .eq('documento', documento.trim())
+            .eq('curso', curso.trim())
             .limit(1)
             .maybeSingle();
 
@@ -139,14 +140,15 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const estudianteExiste = await verificarEstudianteRegistrado(
                     correo,
-                    documento
+                    documento,
+                    curso
                 );
 
                 if (!estudianteExiste) {
                     Swal.fire({
                         icon: 'warning',
                         title: 'Datos no coinciden',
-                        text: 'El correo y el documento deben coincidir con el mismo estudiante registrado en la base de datos.',
+                        text: 'El correo, el documento y el grado/grupo deben coincidir con el mismo estudiante registrado en la base de datos.',
                         confirmButtonColor: '#165dff'
                     });
                     return;
