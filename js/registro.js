@@ -4,6 +4,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const roleLabel = document.getElementById('roleLabel');
     const form = document.getElementById('formRegistro');
     const client = window.PUNTUALIXSCAN?.client;
+    const cursoField = document.getElementById('cursoField');
+    const cursoLabel = document.getElementById('cursoLabel');
+    const cursoInput = document.getElementById('curso');
+    const gradoGrupoField = document.getElementById('gradoGrupoField');
+    const gradoRegistro = document.getElementById('gradoRegistro');
+    const grupoRegistro = document.getElementById('grupoRegistro');
 
     const roleNames = {
         estudiante: 'Estudiante',
@@ -15,6 +21,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const validRole = roleNames[role] ? role : 'estudiante';
         roleInput.value = validRole;
         roleLabel.textContent = roleNames[validRole];
+        const esEstudiante = validRole === 'estudiante';
+        cursoField.style.display = esEstudiante ? 'none' : 'flex';
+        cursoLabel.textContent = esEstudiante ? 'Grado y grupo' : 'Curso / Área';
+        cursoInput.required = !esEstudiante;
+        gradoGrupoField.style.display = esEstudiante ? 'grid' : 'none';
+        gradoRegistro.required = esEstudiante;
+        grupoRegistro.required = esEstudiante;
 
         roleButtons.forEach((button) => {
             const active = button.dataset.role === validRole;
@@ -25,6 +38,8 @@ document.addEventListener('DOMContentLoaded', () => {
     roleButtons.forEach((button) => {
         button.addEventListener('click', () => setRole(button.dataset.role));
     });
+
+    setRole(roleInput.value);
 
     async function verificarEstudianteRegistrado(correo) {
         if (!client) {
@@ -83,7 +98,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const documento = document.getElementById('documento').value.trim();
         const correo = document.getElementById('correoRegistro').value.trim();
         const telefono = document.getElementById('telefono').value.trim();
-        const curso = document.getElementById('curso').value.trim();
+        const curso = tipo === 'estudiante'
+            ? `${gradoRegistro.value}-${grupoRegistro.value}`
+            : cursoInput.value.trim();
         const clave = document.getElementById('claveRegistro').value.trim();
         const tipo = roleInput.value;
 
@@ -92,6 +109,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 icon: 'warning',
                 title: 'Faltan datos',
                 text: 'Completa todos los campos para registrar el usuario.',
+                confirmButtonColor: '#165dff'
+            });
+            return;
+        }
+
+        if (tipo === 'estudiante' && (!gradoRegistro.value || !grupoRegistro.value)) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Grado y grupo requeridos',
+                text: 'Selecciona el grado y el grupo del estudiante.',
                 confirmButtonColor: '#165dff'
             });
             return;

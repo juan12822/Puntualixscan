@@ -141,10 +141,27 @@
 
                     <div class="form-row">
                         <div class="field">
-                            <label class="field-label" for="curso">Curso / Área</label>
-                            <div class="field-shell">
+                            <label class="field-label" for="curso" id="cursoLabel">Curso / Área</label>
+                            <div class="field-shell" id="cursoField">
                                 <i class="fa-solid fa-graduation-cap field-icon" aria-hidden="true"></i>
                                 <input id="curso" name="curso" type="text" placeholder="10°A / Matemáticas" required>
+                            </div>
+                            <div id="gradoGrupoField" style="display:none;grid-template-columns:1fr 1fr;gap:10px;">
+                                <select id="gradoRegistro" aria-label="Grado">
+                                    <option value="">Grado</option>
+                                    <option value="6">6</option>
+                                    <option value="7">7</option>
+                                    <option value="8">8</option>
+                                    <option value="9">9</option>
+                                    <option value="10">10</option>
+                                    <option value="11">11</option>
+                                </select>
+                                <select id="grupoRegistro" aria-label="Grupo">
+                                    <option value="">Grupo</option>
+                                    <option value="1">1</option>
+                                    <option value="2">2</option>
+                                    <option value="3">3</option>
+                                </select>
                             </div>
                         </div>
                         <div class="field">
