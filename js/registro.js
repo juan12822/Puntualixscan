@@ -98,11 +98,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const documento = document.getElementById('documento').value.trim();
         const correo = document.getElementById('correoRegistro').value.trim();
         const telefono = document.getElementById('telefono').value.trim();
+        const tipo = roleInput.value;
         const curso = tipo === 'estudiante'
             ? `${gradoRegistro.value}-${grupoRegistro.value}`
             : cursoInput.value.trim();
         const clave = document.getElementById('claveRegistro').value.trim();
-        const tipo = roleInput.value;
 
         if (!nombre || !documento || !correo || !telefono || !curso || !clave) {
             Swal.fire({
