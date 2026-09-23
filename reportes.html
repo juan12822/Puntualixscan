@@ -190,6 +190,11 @@
         }
 
 
+        .student-only-hidden {
+            display: none !important;
+        }
+
+
         .report-actions {
 
             display:flex;
@@ -945,7 +950,10 @@
             <div class="report-filter-grid">
 
 
-                <label class="report-field">
+                <label
+                    id="filtroNombreEstudiante"
+                    class="report-field"
+                >
 
                     Buscar estudiante
 
@@ -959,7 +967,10 @@
                 </label>
 
 
-                <label class="report-field">
+                <label
+                    id="filtroCursoEstudiante"
+                    class="report-field"
+                >
 
                     Curso
 

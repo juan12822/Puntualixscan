@@ -145,6 +145,9 @@ async function iniciarReportes() {
         await protegerPagina();
 
 
+        await ocultarFiltrosEstudiante();
+
+
         await cargarReportes();
 
 
@@ -162,6 +165,56 @@ async function iniciarReportes() {
 
     }
 
+}
+
+
+async function ocultarFiltrosEstudiante() {
+
+    let usuario = null;
+
+    try {
+        usuario = JSON.parse(
+            localStorage.getItem("usuario") ||
+            "null"
+        );
+    } catch (_) {
+        usuario = null;
+    }
+
+    const rol = String(
+        usuario?.rol ||
+        usuario?.tipo ||
+        ""
+    ).trim().toLowerCase();
+
+    let rolFinal = rol;
+
+    if (!['estudiante', 'profesor', 'administrador'].includes(rolFinal)) {
+        try {
+            const client = obtenerCliente();
+            const { data: authData } = await client.auth.getUser();
+            const userId = authData?.user?.id;
+
+            if (userId) {
+                const { data: perfil } = await client
+                    .from("usuarios")
+                    .select("rol")
+                    .eq("id", userId)
+                    .maybeSingle();
+
+                rolFinal = String(perfil?.rol || "")
+                    .trim()
+                    .toLowerCase();
+            }
+        } catch (error) {
+            console.warn("No se pudo determinar el rol del estudiante:", error);
+        }
+    }
+
+    if (rolFinal === "estudiante") {
+        $("filtroNombreEstudiante")?.classList.add("student-only-hidden");
+        $("filtroCursoEstudiante")?.classList.add("student-only-hidden");
+    }
 }
 
 
@@ -367,34 +420,18 @@ async function obtenerFiltroEstudiante(client) {
 
     }
 
-    const correo = String(
-        usuario?.correo ||
-        usuario?.email ||
+    const documento = String(
+        usuario?.documento ||
         ""
     ).trim();
 
-    if (!correo) {
-
+    if (!documento) {
         throw new Error(
-            "La sesión del estudiante no tiene un correo válido."
+            "Tu perfil no tiene un documento registrado. Solicita a administración que lo complete."
         );
-
     }
 
-    const { data, error } = await client
-        .from("estudiantes")
-        .select("id")
-        .ilike("correo", correo)
-        .limit(1)
-        .maybeSingle();
-
-    if (error) {
-
-        throw error;
-
-    }
-
-    return data?.id || "__sin_estudiante__";
+    return documento;
 
 }
 
@@ -442,10 +479,10 @@ async function cargarReportes() {
                 "*, estudiantes(foto)"
             );
 
-        if (filtroEstudiante) {
+        if (filtroEstudiante !== null) {
 
             consulta = consulta.eq(
-                "estudiante_id",
+                "documento",
                 filtroEstudiante
             );
 

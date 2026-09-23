@@ -3,7 +3,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const roleInput = document.getElementById('tipoUsuario');
     const roleLabel = document.getElementById('roleLabel');
     const form = document.getElementById('formRegistro');
-    const client = window.PUNTUALIXSCAN?.client;
     const cursoField = document.getElementById('cursoField');
     const cursoLabel = document.getElementById('cursoLabel');
     const cursoInput = document.getElementById('curso');
@@ -41,28 +40,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setRole(roleInput.value);
 
-    async function verificarEstudianteRegistrado(correo, documento, curso) {
-        if (!client) {
-            throw new Error('No se pudo conectar con la base de datos de estudiantes.');
-        }
-
-        const { data, error } = await client
-            .from('estudiantes')
-            .select('id')
-            .ilike('correo', correo.trim())
-            .eq('documento', documento.trim())
-            .eq('curso', curso.trim())
-            .limit(1)
-            .maybeSingle();
-
-        if (error) {
-            throw error;
-        }
-
-        return Boolean(data);
-    }
-
     async function registrarEnSupabase(datos) {
+        const client = window.PUNTUALIXSCAN?.client;
+
         if (!client) {
             throw new Error('No se pudo conectar con Supabase.');
         }
@@ -100,7 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const documento = document.getElementById('documento').value.trim();
         const correo = document.getElementById('correoRegistro').value.trim();
         const telefono = document.getElementById('telefono').value.trim();
-        const tipo = roleInput.value;
+        const tipo = roleInput.value === 'profesor' ? 'profesor' : 'estudiante';
         const curso = tipo === 'estudiante'
             ? `${gradoRegistro.value}-${grupoRegistro.value}`
             : cursoInput.value.trim();
@@ -136,35 +116,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        if (tipo === 'estudiante') {
-            try {
-                const estudianteExiste = await verificarEstudianteRegistrado(
-                    correo,
-                    documento,
-                    curso
-                );
-
-                if (!estudianteExiste) {
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'Datos no coinciden',
-                        text: 'El correo, el documento y el grado/grupo deben coincidir con el mismo estudiante registrado en la base de datos.',
-                        confirmButtonColor: '#165dff'
-                    });
-                    return;
-                }
-            } catch (error) {
-                console.error('Error verificando estudiante:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'No se pudieron validar los datos',
-                    text: 'No fue posible consultar la base de datos de estudiantes. Inténtalo nuevamente.',
-                    confirmButtonColor: '#165dff'
-                });
-                return;
-            }
-        }
-
         const datos = {
             nombre,
             documento,
@@ -190,8 +141,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         Swal.fire({
             icon: 'success',
-            title: 'Usuario registrado',
-            text: `Se creó correctamente la cuenta de ${roleNames[tipo]} en Supabase. Revisa tu correo si requiere confirmación.`,
+            title: 'Solicitud enviada',
+            text: 'Tu cuenta quedó pendiente de aprobación por administración. Recibirás acceso cuando sea aprobada.',
             confirmButtonColor: '#165dff'
         }).then(() => {
             window.location.href = 'login.html';

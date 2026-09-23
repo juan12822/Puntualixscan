@@ -462,6 +462,11 @@
                 user?.email ||
                 "",
 
+            documento:
+                source.documento ||
+                metadata.documento ||
+                "",
+
             nombre:
                 source.nombre ||
                 metadata.nombre ||
@@ -772,6 +777,27 @@
                 user
             );
 
+        const estado = String(
+            profile?.estado || "pendiente"
+        ).trim().toLowerCase();
+
+        if (estado !== "aprobado") {
+            try {
+                await global.PUNTUALIXSCAN.auth.signOut();
+            } catch (signOutError) {
+                global.PUNTUALIXSCAN.logger?.warn(
+                    "No se pudo cerrar la sesión pendiente.",
+                    signOutError
+                );
+            }
+
+            throw new Error(
+                estado === "rechazado"
+                    ? "Tu solicitud de acceso fue rechazada por administración."
+                    : "Tu solicitud está pendiente de aprobación por administración."
+            );
+        }
+
         const actualRole =
             profile?.rol ||
             profile?.tipo ||
@@ -1002,6 +1028,7 @@
                     return (
                         correo === email &&
                         clave === password &&
+                        usuario?.estado === "aprobado" &&
                         roleMatches(
                             tipo,
                             selectedRole
@@ -1019,6 +1046,7 @@
             nombre: usuarioLocal.nombre || usuarioLocal.correo || "Usuario",
             correo: usuarioLocal.correo || email,
             email: usuarioLocal.correo || email,
+            documento: usuarioLocal.documento || "",
             rol: usuarioLocal.tipo || usuarioLocal.rol || selectedRole,
             tipo: usuarioLocal.tipo || usuarioLocal.rol || selectedRole
         };

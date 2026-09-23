@@ -94,6 +94,9 @@ const Configuracion = (() => {
         await comprobarSistema();
 
 
+        await cargarSolicitudes();
+
+
         actualizarInterfaz();
 
 
@@ -135,6 +138,13 @@ const Configuracion = (() => {
             ?.addEventListener(
                 "click",
                 guardarPreferencias
+            );
+
+
+        $("listaSolicitudes")
+            ?.addEventListener(
+                "click",
+                gestionarSolicitud
             );
 
 
@@ -700,6 +710,115 @@ const Configuracion = (() => {
 
         }
 
+    }
+
+
+    /* =====================================================
+       SOLICITUDES DE ACCESO
+    ===================================================== */
+
+    async function cargarSolicitudes() {
+
+        const contenedor = $("listaSolicitudes");
+        const client = window.PUNTUALIXSCAN?.client;
+
+        if (!contenedor || !client) {
+            return;
+        }
+
+        try {
+            const { data, error } = await client
+                .from("usuarios")
+                .select("id, nombre, correo, rol, estado")
+                .eq("estado", "pendiente");
+
+            if (error) {
+                throw error;
+            }
+
+            mostrarSolicitudes(data || []);
+        } catch (error) {
+            console.warn("No se pudieron cargar las solicitudes:", error);
+            contenedor.innerHTML =
+                `<p class="approval-empty">No se pudieron cargar las solicitudes: ${escaparHTML(error.message || "verifica los permisos de Supabase")}.</p>`;
+        }
+    }
+
+
+    function mostrarSolicitudes(solicitudes) {
+
+        const contenedor = $("listaSolicitudes");
+        const pendientes = solicitudes.filter(
+            solicitud =>
+                solicitud.estado === "pendiente" &&
+                ["estudiante", "profesor"].includes(
+                    String(solicitud.rol || "").toLowerCase()
+                )
+        );
+
+        if (!pendientes.length) {
+                contenedor.innerHTML =
+                    '<p class="approval-empty">No hay solicitudes pendientes.</p>';
+                return;
+        }
+
+        contenedor.innerHTML = pendientes.map(solicitud => `
+                <div class="approval-item">
+                    <div class="approval-details">
+                        <strong>${escaparHTML(solicitud.nombre || "Sin nombre")}</strong>
+                        <span>${escaparHTML(solicitud.correo || "")} · ${escaparHTML(solicitud.rol || "")} · ${escaparHTML(solicitud.curso || "Sin curso")}</span>
+                    </div>
+                    <div class="approval-actions">
+                        <button class="approval-accept" data-estado="aprobado" data-id="${solicitud.id}">Aprobar</button>
+                        <button class="approval-reject" data-estado="rechazado" data-id="${solicitud.id}">Rechazar</button>
+                    </div>
+                </div>
+        `).join("");
+    }
+
+
+    async function gestionarSolicitud(evento) {
+
+        const boton = evento.target.closest("button[data-id]");
+        const client = window.PUNTUALIXSCAN?.client;
+
+        if (!boton || !client) {
+            return;
+        }
+
+        boton.disabled = true;
+
+        try {
+            const { error } = await client.rpc(
+                "actualizar_estado_registro",
+                {
+                    usuario_id: boton.dataset.id,
+                    nuevo_estado: boton.dataset.estado
+                }
+            );
+
+            if (error) {
+                throw error;
+            }
+
+            await cargarSolicitudes();
+            notificar("La solicitud fue actualizada.", "success");
+        } catch (error) {
+            boton.disabled = false;
+            console.error("No se pudo actualizar la solicitud:", error);
+            notificar("No se pudo actualizar la solicitud.", "error");
+        }
+    }
+
+
+    function escaparHTML(valor) {
+        return String(valor || "").replace(/[&<>'"]/g, caracter => ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            "'": "&#39;",
+            "\"": "&quot;"
+        }[caracter]));
     }
 
 
