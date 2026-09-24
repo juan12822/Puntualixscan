@@ -147,6 +147,8 @@ async function iniciarReportes() {
 
         await ocultarFiltrosEstudiante();
 
+        await cargarPerfilEstudiante();
+
 
         await cargarReportes();
 
@@ -214,6 +216,164 @@ async function ocultarFiltrosEstudiante() {
     if (rolFinal === "estudiante") {
         $("filtroNombreEstudiante")?.classList.add("student-only-hidden");
         $("filtroCursoEstudiante")?.classList.add("student-only-hidden");
+    }
+}
+
+function usuarioLocal() {
+    try {
+        return JSON.parse(localStorage.getItem("usuario") || "null");
+    } catch (_) {
+        return null;
+    }
+}
+
+async function cargarPerfilEstudiante() {
+    const usuario = usuarioLocal();
+    const rol = String(usuario?.rol || usuario?.tipo || "").trim().toLowerCase();
+
+    if (rol !== "estudiante") {
+        return;
+    }
+
+    const panel = $("perfilEstudiante");
+    const client = obtenerCliente();
+    const { data: authData } = await client.auth.getUser();
+    const userId = authData?.user?.id;
+    let perfil = null;
+
+    if (userId) {
+        const respuesta = await client
+            .from("usuarios")
+            .select("nombre, documento, curso, correo")
+            .eq("id", userId)
+            .maybeSingle();
+        perfil = respuesta.data;
+    }
+
+    const documento = String(perfil?.documento || usuario?.documento || "").trim();
+    if (!documento) {
+        return;
+    }
+
+    const { data: estudiante, error } = await client
+        .from("estudiantes")
+        .select("id, nombre, documento, curso, foto, codigoqr")
+        .eq("documento", documento)
+        .maybeSingle();
+
+    if (error) {
+        throw error;
+    }
+
+    if (!estudiante) {
+        return;
+    }
+
+    panel?.classList.remove("student-only-hidden");
+    $("nombrePerfilEstudiante").textContent = estudiante.nombre || perfil?.nombre || "Mi perfil";
+    $("datosPerfilEstudiante").textContent = `${estudiante.documento} · ${estudiante.curso || "Sin curso"}`;
+    $("codigoPerfilEstudiante").textContent = estudiante.codigoqr || "Sin código";
+    const foto = estudiante.foto || FOTO_DEFAULT;
+    $("fotoPerfilEstudiante").src = foto;
+    $("fotoPerfilEstudiante").onerror = () => {
+        $("fotoPerfilEstudiante").src = FOTO_DEFAULT;
+    };
+
+    const fotoSidebar = document.querySelector(".usuario img");
+    if (fotoSidebar) {
+        fotoSidebar.src = foto;
+        fotoSidebar.onerror = () => {
+            fotoSidebar.src = FOTO_DEFAULT;
+        };
+    }
+
+    $("btnFotoPerfil")?.addEventListener("click", () => $("fotoPerfilInput")?.click());
+    $("fotoPerfilInput")?.addEventListener("change", event => actualizarFotoEstudiante(event, estudiante));
+    $("btnVerQrPerfil")?.addEventListener("click", () => mostrarQrPerfil(estudiante));
+}
+
+function mostrarQrPerfil(estudiante) {
+    const valor = String(estudiante.codigoqr || estudiante.documento || "").trim();
+    const contenedor = $("codigoQrPerfil");
+    const panel = $("qrPerfilEstudiante");
+
+    if (!valor || !contenedor || !panel) {
+        return;
+    }
+
+    contenedor.innerHTML = "";
+    if (typeof QRCode === "function") {
+        new QRCode(contenedor, {
+            text: valor,
+            width: 116,
+            height: 116,
+            colorDark: "#172033",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
+        });
+    } else {
+        contenedor.textContent = valor;
+    }
+
+    panel.classList.add("is-visible");
+}
+
+async function actualizarFotoEstudiante(evento, estudiante) {
+    const archivo = evento.target.files?.[0];
+    const boton = $("btnFotoPerfil");
+    const client = obtenerCliente();
+
+    if (!archivo) {
+        return;
+    }
+
+    if (!["image/jpeg", "image/png", "image/webp"].includes(archivo.type) || archivo.size > 5 * 1024 * 1024) {
+        notificarError("La foto debe ser JPG, PNG o WEBP y no superar los 5 MB.");
+        evento.target.value = "";
+        return;
+    }
+
+    boton.disabled = true;
+    try {
+        const extension = archivo.type.split("/")[1].replace("jpeg", "jpg");
+        const path = `fotos/${estudiante.documento}_${Date.now()}.${extension}`;
+        const subida = await client.storage.from("estudiantes").upload(path, archivo, {
+            cacheControl: "3600",
+            upsert: false,
+            contentType: archivo.type
+        });
+
+        if (subida.error) {
+            throw subida.error;
+        }
+
+        const { data: urlData } = client.storage.from("estudiantes").getPublicUrl(path);
+        const foto = urlData?.publicUrl;
+        if (!foto) {
+            throw new Error("No se pudo obtener la URL de la foto.");
+        }
+
+        const { error } = await client
+            .from("estudiantes")
+            .update({ foto })
+            .eq("id", estudiante.id);
+
+        if (error) {
+            throw error;
+        }
+
+        $("fotoPerfilEstudiante").src = foto;
+        const fotoSidebar = document.querySelector(".usuario img");
+        if (fotoSidebar) {
+            fotoSidebar.src = foto;
+        }
+        notificarExito("Tu foto de perfil fue actualizada.");
+    } catch (error) {
+        console.error("No se pudo actualizar la foto del estudiante:", error);
+        notificarError(obtenerMensajeError(error, "No se pudo actualizar la foto."));
+    } finally {
+        boton.disabled = false;
+        evento.target.value = "";
     }
 }
 
@@ -2548,6 +2708,28 @@ function notificarError(
         mensaje
     );
 
+}
+
+
+/* =========================================================
+   NOTIFICAR ÉXITO
+========================================================= */
+
+function notificarExito(
+    mensaje
+) {
+
+    if (window.Swal) {
+        Swal.fire({
+            icon: "success",
+            title: "Actualizado",
+            text: mensaje,
+            confirmButtonColor: "#123b85"
+        });
+        return;
+    }
+
+    console.info(mensaje);
 }
 
 

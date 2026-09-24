@@ -751,6 +751,14 @@ ol{
     margin-top:16px;
 }
 
+.student-layout.consultation-only{
+    grid-template-columns:1fr;
+}
+
+.student-layout.consultation-only .admin-entry-panel{
+    display:none;
+}
+
 .estudiantes-container{
     animation:entrada .3s ease;
 }

@@ -806,7 +806,17 @@ const Configuracion = (() => {
         } catch (error) {
             boton.disabled = false;
             console.error("No se pudo actualizar la solicitud:", error);
-            notificar("No se pudo actualizar la solicitud.", "error");
+            const detalle = [
+                error?.message,
+                error?.details,
+                error?.hint
+            ].filter(Boolean).join(" ");
+            notificar(
+                detalle
+                    ? `No se pudo actualizar la solicitud: ${detalle}`
+                    : "No se pudo actualizar la solicitud.",
+                "error"
+            );
         }
     }
 

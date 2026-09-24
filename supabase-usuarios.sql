@@ -49,6 +49,12 @@ create unique index if not exists usuarios_documento_unico
     on public.usuarios (documento)
     where documento is not null;
 
+-- Normaliza los códigos antiguos a un identificador corto y estable.
+update public.estudiantes
+set codigoqr = 'PX-' || upper(substr(replace(id::text, '-', ''), 1, 10))
+where codigoqr is null
+    or length(codigoqr) > 14;
+
 alter table public.usuarios enable row level security;
 
 grant select on public.usuarios to authenticated;
@@ -182,6 +188,34 @@ begin
        or nuevo_estado not in ('aprobado', 'rechazado') then
         raise exception 'No autorizado';
     end if;
+
+    if nuevo_estado = 'aprobado' then
+        insert into public.estudiantes (
+            nombre,
+            documento,
+            curso,
+            correo,
+            telefono,
+            codigoqr
+        )
+        select
+            u.nombre,
+            u.documento,
+            u.curso,
+            u.correo,
+            u.telefono,
+            'PX-' || upper(substr(replace(md5(u.id::text), '-', ''), 1, 10))
+        from public.usuarios u
+        where u.id = usuario_id
+          and u.rol = 'estudiante'
+          and u.documento is not null
+          and not exists (
+              select 1
+              from public.estudiantes e
+              where e.documento = u.documento
+          );
+    end if;
+
     update public.usuarios
     set estado = nuevo_estado
     where id = usuario_id and rol in ('estudiante', 'profesor');
@@ -195,3 +229,47 @@ revoke all on function public.actualizar_estado_registro(uuid, text) from public
 grant execute on function public.es_administrador() to authenticated;
 grant execute on function public.listar_solicitudes_registro() to authenticated;
 grant execute on function public.actualizar_estado_registro(uuid, text) to authenticated;
+
+-- Permite que cada estudiante consulte y actualice únicamente su propio registro.
+alter table public.estudiantes enable row level security;
+
+drop policy if exists "estudiante puede ver su registro" on public.estudiantes;
+create policy "estudiante puede ver su registro"
+    on public.estudiantes
+    for select
+    to authenticated
+    using (
+        documento = (
+            select documento
+            from public.usuarios
+            where id = auth.uid()
+        )
+    );
+
+drop policy if exists "estudiante puede actualizar su foto" on public.estudiantes;
+create policy "estudiante puede actualizar su foto"
+    on public.estudiantes
+    for update
+    to authenticated
+    using (
+        documento = (
+            select documento
+            from public.usuarios
+            where id = auth.uid()
+        )
+    )
+    with check (
+        documento = (
+            select documento
+            from public.usuarios
+            where id = auth.uid()
+        )
+    );
+
+-- El bucket ya es usado por el módulo administrativo de estudiantes.
+drop policy if exists "usuarios autenticados pueden subir fotos de estudiantes" on storage.objects;
+create policy "usuarios autenticados pueden subir fotos de estudiantes"
+    on storage.objects
+    for insert
+    to authenticated
+    with check (bucket_id = 'estudiantes' and name like 'fotos/%');
