@@ -1082,6 +1082,73 @@ async function verificarDuplicado(
    REGISTRAR ASISTENCIA
    ============================================================ */
 
+async function enviarCorreoAcudiente(estudiante, fecha, hora) {
+
+    const correoAcudiente = String(
+        estudiante?.correo_acudiente ||
+        estudiante?.acudiente_correo ||
+        ""
+    ).trim();
+
+    if (!correoAcudiente) {
+
+        console.info(
+            "No hay correo del acudiente para enviar notificación."
+        );
+
+        return;
+    }
+
+    const client = obtenerCliente();
+
+    if (!client?.functions) {
+
+        console.warn(
+            "El cliente de Supabase no expone funciones Edge. No se envió correo."
+        );
+
+        return;
+    }
+
+    try {
+
+        const respuesta = await client.functions.invoke(
+            "enviar-correo-acudiente",
+            {
+                body: {
+                    estudiante: estudiante?.nombre || "Estudiante",
+                    documento: estudiante?.documento || "",
+                    curso: estudiante?.curso || "",
+                    correoAcudiente,
+                    fecha,
+                    hora,
+                    ingreso: ingresoSeleccionado || "",
+                    estado: estadoSeleccionado || "Tarde"
+                }
+            }
+        );
+
+        if (respuesta?.error) {
+
+            throw respuesta.error;
+        }
+
+        console.info(
+            "Correo del acudiente enviado correctamente.",
+            respuesta?.data
+        );
+
+    } catch (error) {
+
+        console.error(
+            "No se pudo enviar el correo al acudiente:",
+            error
+        );
+
+    }
+}
+
+
 async function registrarAsistencia() {
 
     if (registrando) {
@@ -1366,6 +1433,18 @@ async function registrarAsistencia() {
             });
 
             return;
+        }
+
+        if (
+            estadoSeleccionado === "Tarde"
+        ) {
+
+            await enviarCorreoAcudiente(
+                estudianteActual,
+                fecha,
+                hora
+            );
+
         }
 
         /*

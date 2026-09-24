@@ -106,6 +106,8 @@ const elementos = {
 
     correo: $("correo"),
 
+    correoAcudiente: $("correoAcudiente"),
+
     telefono: $("telefono"),
 
     foto: $("foto"),
@@ -872,6 +874,14 @@ function crearFilaEstudiante(
         );
 
 
+    const correoAcudiente =
+        escaparHTML(
+            estudiante.correo_acudiente ||
+            estudiante.acudiente_correo ||
+            ""
+        );
+
+
     const telefono =
         escaparHTML(
             estudiante.telefono ||
@@ -887,25 +897,24 @@ function crearFilaEstudiante(
 
     let contacto = "—";
 
+    const bloques = [];
 
-    if (
-        correo &&
-        telefono
-    ) {
+    if (correo) {
+        bloques.push(correo);
+    }
 
-        contacto =
-            `${correo}<br>${telefono}`;
+    if (telefono) {
+        bloques.push(telefono);
+    }
 
-    } else if (correo) {
+    if (correoAcudiente) {
+        bloques.push(
+            `Acudiente: ${correoAcudiente}`
+        );
+    }
 
-        contacto =
-            correo;
-
-    } else if (telefono) {
-
-        contacto =
-            telefono;
-
+    if (bloques.length > 0) {
+        contacto = bloques.join("<br>");
     }
 
 
@@ -1397,6 +1406,10 @@ async function registrarEstudiante() {
                 datos.correo ||
                 null,
 
+            correo_acudiente:
+                datos.correoAcudiente ||
+                null,
+
             telefono:
                 datos.telefono ||
                 null,
@@ -1539,6 +1552,12 @@ function obtenerDatosFormulario() {
                 ""
             ).trim(),
 
+        correoAcudiente:
+            String(
+                elementos.correoAcudiente?.value ||
+                ""
+            ).trim(),
+
         telefono:
             String(
                 elementos.telefono?.value ||
@@ -1616,7 +1635,21 @@ function validarDatos(
     ) {
 
         throw new Error(
-            "El correo electrónico no es válido."
+            "El correo electrónico del estudiante no es válido."
+        );
+
+    }
+
+    if (
+        datos.correoAcudiente &&
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/
+            .test(
+                datos.correoAcudiente
+            )
+    ) {
+
+        throw new Error(
+            "El correo del acudiente no es válido."
         );
 
     }
@@ -2017,6 +2050,12 @@ function editarEstudiante(
         "";
 
 
+    elementos.correoAcudiente.value =
+        estudiante.correo_acudiente ||
+        estudiante.acudiente_correo ||
+        "";
+
+
     elementos.telefono.value =
         estudiante.telefono ||
         "";
@@ -2140,6 +2179,10 @@ async function actualizarEstudiante() {
 
             correo:
                 datos.correo ||
+                null,
+
+            correo_acudiente:
+                datos.correoAcudiente ||
                 null,
 
             telefono:
