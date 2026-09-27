@@ -751,14 +751,6 @@ ol{
     margin-top:16px;
 }
 
-.student-layout.consultation-only{
-    grid-template-columns:1fr;
-}
-
-.student-layout.consultation-only .admin-entry-panel{
-    display:none;
-}
-
 .estudiantes-container{
     animation:entrada .3s ease;
 }
@@ -1089,6 +1081,30 @@ ol{
 
     font-size:9px;
     font-weight:800;
+}
+
+.estado-badge{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+
+    padding:4px 8px;
+
+    border-radius:999px;
+
+    font-size:9px;
+    font-weight:800;
+    letter-spacing:0.02em;
+}
+
+.estado-activo{
+    background:#eaf9ee;
+    color:#1b7d4d;
+}
+
+.estado-inactivo{
+    background:#fff2ea;
+    color:#b25d1d;
 }
 
 

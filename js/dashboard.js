@@ -345,6 +345,33 @@
     }
 
 
+    async function cargarEstudiantesActivos() {
+
+        const {
+            count,
+            error
+        } = await db
+            .from("estudiantes")
+            .select(
+                "id",
+                {
+                    count: "exact",
+                    head: true
+                }
+            )
+            .neq(
+                "activo",
+                false
+            );
+
+        if (error) {
+            throw error;
+        }
+
+        return count || 0;
+    }
+
+
     // ========================================================
     // CARGAR ASISTENCIAS DE HOY
     // ========================================================
@@ -483,12 +510,18 @@
 
     function actualizarTarjetas(
         totalEstudiantes,
-        metricas
+        metricas,
+        estudiantesActivos = totalEstudiantes
     ) {
 
         texto(
             "totalEstudiantes",
             totalEstudiantes
+        );
+
+        texto(
+            "totalActivos",
+            estudiantesActivos
         );
 
         texto(
@@ -1527,10 +1560,13 @@
 
             const [
                 totalEstudiantes,
+                estudiantesActivos,
                 registrosHoy
             ] = await Promise.all([
 
                 cargarTotalEstudiantes(),
+
+                cargarEstudiantesActivos(),
 
                 cargarAsistenciasHoy()
             ]);
@@ -1546,7 +1582,8 @@
 
             actualizarTarjetas(
                 totalEstudiantes,
-                metricas
+                metricas,
+                estudiantesActivos
             );
 
 

@@ -110,6 +110,8 @@ const elementos = {
 
     telefono: $("telefono"),
 
+    estadoEstudiante: $("estadoEstudiante"),
+
     foto: $("foto"),
 
     previewFoto: $("previewFoto"),
@@ -1562,7 +1564,12 @@ function obtenerDatosFormulario() {
             String(
                 elementos.telefono?.value ||
                 ""
-            ).trim()
+            ).trim(),
+
+        activo:
+            Boolean(
+                elementos.estadoEstudiante?.checked
+            )
 
     };
 
@@ -2059,6 +2066,11 @@ function editarEstudiante(
     elementos.telefono.value =
         estudiante.telefono ||
         "";
+
+    if (elementos.estadoEstudiante) {
+        elementos.estadoEstudiante.checked =
+            estudiante.activo !== false;
+    }
 
 
     elementos.foto.value =
