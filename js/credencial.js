@@ -14,6 +14,8 @@ const state = {
 
     estudiante: null,
 
+    estudiantes: [],
+
     inicializado: false,
 
     cargando: false
@@ -295,6 +297,13 @@ function configurarEventos() {
         );
 
 
+    $("seleccionarEstudianteCredencial")
+        ?.addEventListener(
+            "change",
+            seleccionarEstudiante
+        );
+
+
     $("btnCerrarSesion")
         ?.addEventListener(
             "click",
@@ -350,6 +359,40 @@ async function cargarCredencial() {
             obtenerEstudianteGuardado();
 
 
+        const client =
+            obtenerCliente();
+
+
+        const {
+            data: estudiantes,
+            error: errorEstudiantes
+        } = await client
+            .from("estudiantes")
+            .select("*")
+            .order(
+                "nombre",
+                {
+                    ascending: true
+                }
+            );
+
+
+        if (errorEstudiantes) {
+
+            throw errorEstudiantes;
+
+        }
+
+
+        state.estudiantes =
+            Array.isArray(estudiantes)
+                ? estudiantes
+                : [];
+
+
+        cargarSelectorEstudiantes();
+
+
         /* ---------------------------------------------
            PRIMERA OPCIÓN:
            DOCUMENTO EN LA URL
@@ -360,41 +403,11 @@ async function cargarCredencial() {
         ) {
 
 
-            const client =
-                obtenerCliente();
-
-
-            const {
-                data,
-                error
-            } =
-                await client
-
-                    .from(
-                        "estudiantes"
-                    )
-
-                    .select(
-                        "*"
-                    )
-
-                    .eq(
-                        "documento",
-                        documento
-                    )
-
-                    .maybeSingle();
-
-
-            if (error) {
-
-                throw error;
-
-            }
-
-
             state.estudiante =
-                data || null;
+                state.estudiantes.find(
+                    estudiante =>
+                        String(estudiante.documento) === documento
+                ) || null;
 
 
         } else {
@@ -406,7 +419,13 @@ async function cargarCredencial() {
             ----------------------------------------- */
 
             state.estudiante =
-                guardado;
+                guardado
+                    ? state.estudiantes.find(
+                        estudiante =>
+                            String(estudiante.id) === String(guardado.id) ||
+                            String(estudiante.documento) === String(guardado.documento)
+                    ) || null
+                    : null;
 
         }
 
@@ -432,6 +451,15 @@ async function cargarCredencial() {
         mostrarCredencial(
             state.estudiante
         );
+
+
+        const selector =
+            $("seleccionarEstudianteCredencial");
+
+        if (selector) {
+            selector.value =
+                String(state.estudiante.id || "");
+        }
 
 
     } catch (error) {
@@ -475,6 +503,77 @@ async function cargarCredencial() {
         );
 
     }
+
+}
+
+
+function cargarSelectorEstudiantes() {
+
+    const selector =
+        $("seleccionarEstudianteCredencial");
+
+    if (!selector) {
+        return;
+    }
+
+    selector.replaceChildren();
+
+    const opcionInicial =
+        document.createElement("option");
+
+    opcionInicial.value = "";
+    opcionInicial.textContent = "Selecciona un estudiante...";
+    selector.append(opcionInicial);
+
+    state.estudiantes.forEach(estudiante => {
+        const opcion =
+            document.createElement("option");
+
+        opcion.value =
+            String(estudiante.id || "");
+
+        opcion.textContent =
+            `${estudiante.nombre || "Sin nombre"} · ${estudiante.documento || "Sin documento"} · ${estudiante.curso || "Sin curso"}`;
+
+        selector.append(opcion);
+    });
+
+    selector.disabled =
+        state.estudiantes.length === 0;
+
+    if (state.estudiantes.length === 0) {
+        opcionInicial.textContent =
+            "No hay estudiantes disponibles";
+    }
+
+}
+
+
+function seleccionarEstudiante(event) {
+
+    const id =
+        String(event.target.value || "");
+
+    const estudiante =
+        state.estudiantes.find(
+            item => String(item.id) === id
+        );
+
+    if (!estudiante) {
+        state.estudiante = null;
+        limpiarCredencial();
+        mostrarMensaje("Selecciona un estudiante para generar su credencial.");
+        return;
+    }
+
+    state.estudiante = estudiante;
+
+    localStorage.setItem(
+        "estudianteCredencial",
+        JSON.stringify(estudiante)
+    );
+
+    mostrarCredencial(estudiante);
 
 }
 

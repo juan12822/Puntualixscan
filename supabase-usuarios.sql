@@ -273,3 +273,54 @@ create policy "usuarios autenticados pueden subir fotos de estudiantes"
     for insert
     to authenticated
     with check (bucket_id = 'estudiantes' and name like 'fotos/%');
+
+create or replace function public.actualizar_perfil_estudiante(
+    correo_nuevo text,
+    telefono_nuevo text,
+    foto_nueva text default null
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+    documento_estudiante text;
+begin
+    if auth.uid() is null then
+        raise exception 'No hay una sesión autenticada.';
+    end if;
+
+    select documento
+    into documento_estudiante
+    from public.usuarios
+    where id = auth.uid()
+      and rol = 'estudiante';
+
+    if documento_estudiante is null then
+        raise exception 'El perfil de estudiante no está disponible.';
+    end if;
+
+    update public.usuarios
+    set correo = lower(trim(correo_nuevo)),
+        telefono = nullif(trim(telefono_nuevo), '')
+    where id = auth.uid();
+
+    update public.estudiantes
+    set correo = lower(trim(correo_nuevo)),
+        telefono = nullif(trim(telefono_nuevo), ''),
+        foto = coalesce(nullif(trim(foto_nueva), ''), foto)
+    where documento = documento_estudiante;
+
+    if not found then
+        raise exception 'No se encontró el registro del estudiante.';
+    end if;
+
+    return true;
+end;
+$$;
+
+revoke all on function public.actualizar_perfil_estudiante(text, text, text)
+    from public;
+grant execute on function public.actualizar_perfil_estudiante(text, text, text)
+    to authenticated;

@@ -214,6 +214,135 @@
             background: #eaf1ff;
         }
 
+        .student-profile-dialog {
+            width: min(520px, calc(100% - 28px));
+            max-height: min(88vh, 760px);
+            padding: 0;
+            border: 0;
+            border-radius: 14px;
+            color: #172033;
+            box-shadow: 0 24px 70px rgb(16 33 63 / 24%);
+        }
+
+        .student-profile-dialog::backdrop {
+            background: rgb(12 25 47 / 55%);
+            backdrop-filter: blur(3px);
+        }
+
+        .student-profile-dialog-content {
+            display: grid;
+            gap: 16px;
+            padding: 22px;
+        }
+
+        .student-profile-dialog-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .student-profile-dialog-head h2 {
+            margin: 0 0 4px;
+            font-size: 18px;
+        }
+
+        .student-profile-dialog-head p {
+            margin: 0;
+            color: #718096;
+            font-size: 12px;
+        }
+
+        .student-profile-dialog-close {
+            width: 34px;
+            height: 34px;
+            border: 0;
+            border-radius: 8px;
+            background: #f1f4f8;
+            color: #46556b;
+            cursor: pointer;
+        }
+
+        .student-profile-editor-photo {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .student-profile-editor-photo img {
+            width: 78px;
+            height: 78px;
+            flex: 0 0 78px;
+            object-fit: cover;
+            border: 3px solid #eaf1ff;
+            border-radius: 50%;
+            background: #eaf1ff;
+        }
+
+        .student-profile-fields {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .student-profile-field {
+            display: grid;
+            gap: 6px;
+            color: #526177;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .student-profile-field input {
+            width: 100%;
+            min-height: 40px;
+            padding: 0 10px;
+            border: 1px solid #dce4ee;
+            border-radius: 8px;
+            background: #fff;
+            color: #172033;
+            font: inherit;
+            font-weight: 500;
+        }
+
+        .student-profile-field input[readonly] {
+            background: #f4f6f9;
+            color: #64748b;
+        }
+
+        .student-profile-dialog-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            padding-top: 4px;
+        }
+
+        .student-profile-dialog-actions button {
+            min-height: 40px;
+            padding: 0 14px;
+            border: 0;
+            border-radius: 8px;
+            font: inherit;
+            font-size: 11px;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        #btnCancelarPerfil {
+            background: #eef1f5;
+            color: #46556b;
+        }
+
+        #btnGuardarPerfil {
+            background: #123b85;
+            color: #fff;
+        }
+
+        #btnGuardarPerfil:disabled {
+            opacity: .6;
+            cursor: wait;
+        }
+
         .student-profile h2 {
             margin: 0 0 5px;
             color: #172033;
@@ -298,6 +427,14 @@
             .student-profile-action {
                 grid-column: 1 / -1;
                 justify-content: center;
+            }
+
+            .student-profile-fields {
+                grid-template-columns: 1fr;
+            }
+
+            .student-profile-dialog-content {
+                padding: 18px;
             }
         }
 
@@ -1033,13 +1170,12 @@
             <img id="fotoPerfilEstudiante" class="student-profile-photo" alt="Foto de perfil del estudiante">
             <div>
                 <h2 id="nombrePerfilEstudiante">Mi perfil</h2>
-                <p id="datosPerfilEstudiante">Carga una foto para completar tu registro.</p>
+                <p id="datosPerfilEstudiante">Información de tu perfil estudiantil.</p>
             </div>
             <div class="student-profile-actions">
-                <input id="fotoPerfilInput" type="file" accept="image/jpeg,image/png,image/webp" hidden>
-                <button id="btnFotoPerfil" class="student-profile-action" type="button">
-                    <i class="fa-solid fa-camera" aria-hidden="true"></i>
-                    Cambiar foto
+                <button id="btnEditarPerfil" class="student-profile-action" type="button">
+                    <i class="fa-solid fa-user-pen" aria-hidden="true"></i>
+                    Editar perfil
                 </button>
                 <button id="btnVerQrPerfil" class="student-profile-action" type="button">
                     <i class="fa-solid fa-qrcode" aria-hidden="true"></i>
@@ -1054,6 +1190,59 @@
                 </div>
             </div>
         </section>
+
+        <dialog id="dialogoEditarPerfil" class="student-profile-dialog" aria-labelledby="tituloEditarPerfil">
+            <form id="formEditarPerfil" class="student-profile-dialog-content">
+                <div class="student-profile-dialog-head">
+                    <div>
+                        <h2 id="tituloEditarPerfil">Editar perfil</h2>
+                        <p>Actualiza tus datos de contacto y fotografía.</p>
+                    </div>
+                    <button id="btnCerrarEditorPerfil" class="student-profile-dialog-close" type="button" aria-label="Cerrar">
+                        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                    </button>
+                </div>
+
+                <div class="student-profile-editor-photo">
+                    <img id="fotoEditorPerfil" alt="Foto de perfil" width="78" height="78">
+                    <div>
+                        <input id="fotoPerfilInput" type="file" accept="image/jpeg,image/png,image/webp" hidden>
+                        <button id="btnElegirFotoPerfil" class="student-profile-action" type="button">
+                            <i class="fa-solid fa-camera" aria-hidden="true"></i>
+                            Cambiar foto
+                        </button>
+                    </div>
+                </div>
+
+                <div class="student-profile-fields">
+                    <label class="student-profile-field">
+                        Nombre
+                        <input id="nombreEditorPerfil" type="text" readonly>
+                    </label>
+                    <label class="student-profile-field">
+                        Documento
+                        <input id="documentoEditorPerfil" type="text" readonly>
+                    </label>
+                    <label class="student-profile-field">
+                        Correo del acudiente
+                        <input id="correoAcudienteEditorPerfil" type="email" readonly>
+                    </label>
+                    <label class="student-profile-field">
+                        Correo electrónico
+                        <input id="correoEditorPerfil" type="email" maxlength="150" required>
+                    </label>
+                    <label class="student-profile-field">
+                        Teléfono
+                        <input id="telefonoEditorPerfil" type="tel" maxlength="30">
+                    </label>
+                </div>
+
+                <div class="student-profile-dialog-actions">
+                    <button id="btnCancelarPerfil" type="button">Cancelar</button>
+                    <button id="btnGuardarPerfil" type="submit">Guardar cambios</button>
+                </div>
+            </form>
+        </dialog>
 
 
 

@@ -61,7 +61,11 @@ const state = {
 
     inicializado: false,
 
-    cargando: false
+    cargando: false,
+
+    perfilEstudiante: null,
+
+    fotoPerfilNueva: null
 
 };
 
@@ -244,9 +248,14 @@ async function cargarPerfilEstudiante() {
     if (userId) {
         const respuesta = await client
             .from("usuarios")
-            .select("nombre, documento, curso, correo")
+            .select("nombre, documento, curso, correo, telefono")
             .eq("id", userId)
             .maybeSingle();
+
+        if (respuesta.error) {
+            throw respuesta.error;
+        }
+
         perfil = respuesta.data;
     }
 
@@ -257,7 +266,7 @@ async function cargarPerfilEstudiante() {
 
     const { data: estudiante, error } = await client
         .from("estudiantes")
-        .select("id, nombre, documento, curso, foto, codigoqr")
+        .select("id, nombre, documento, curso, foto, codigoqr, correo, correo_acudiente, telefono")
         .eq("documento", documento)
         .maybeSingle();
 
@@ -269,15 +278,26 @@ async function cargarPerfilEstudiante() {
         return;
     }
 
+    state.perfilEstudiante = estudiante;
     panel?.classList.remove("student-only-hidden");
     $("nombrePerfilEstudiante").textContent = estudiante.nombre || perfil?.nombre || "Mi perfil";
     $("datosPerfilEstudiante").textContent = `${estudiante.documento} · ${estudiante.curso || "Sin curso"}`;
     $("codigoPerfilEstudiante").textContent = estudiante.codigoqr || "Sin código";
     const foto = estudiante.foto || FOTO_DEFAULT;
     $("fotoPerfilEstudiante").src = foto;
+    $("fotoEditorPerfil").src = foto;
     $("fotoPerfilEstudiante").onerror = () => {
         $("fotoPerfilEstudiante").src = FOTO_DEFAULT;
     };
+    $("fotoEditorPerfil").onerror = () => {
+        $("fotoEditorPerfil").src = FOTO_DEFAULT;
+    };
+
+    $("nombreEditorPerfil").value = estudiante.nombre || perfil?.nombre || "";
+    $("documentoEditorPerfil").value = estudiante.documento || "";
+    $("correoAcudienteEditorPerfil").value = estudiante.correo_acudiente || "";
+    $("correoEditorPerfil").value = estudiante.correo || perfil?.correo || "";
+    $("telefonoEditorPerfil").value = estudiante.telefono || perfil?.telefono || "";
 
     const fotoSidebar = document.querySelector(".usuario img");
     if (fotoSidebar) {
@@ -287,9 +307,39 @@ async function cargarPerfilEstudiante() {
         };
     }
 
-    $("btnFotoPerfil")?.addEventListener("click", () => $("fotoPerfilInput")?.click());
-    $("fotoPerfilInput")?.addEventListener("change", event => actualizarFotoEstudiante(event, estudiante));
+    $("btnEditarPerfil")?.addEventListener("click", abrirEditorPerfil);
+    $("btnElegirFotoPerfil")?.addEventListener("click", () => $("fotoPerfilInput")?.click());
+    $("fotoPerfilInput")?.addEventListener("change", previsualizarFotoEstudiante);
+    $("formEditarPerfil")?.addEventListener("submit", guardarPerfilEstudiante);
+    $("btnCancelarPerfil")?.addEventListener("click", cerrarEditorPerfil);
+    $("btnCerrarEditorPerfil")?.addEventListener("click", cerrarEditorPerfil);
     $("btnVerQrPerfil")?.addEventListener("click", () => mostrarQrPerfil(estudiante));
+}
+
+function abrirEditorPerfil() {
+    const estudiante = state.perfilEstudiante;
+    const dialogo = $("dialogoEditarPerfil");
+
+    if (!estudiante || !dialogo) {
+        return;
+    }
+
+    state.fotoPerfilNueva = null;
+    $("fotoPerfilInput").value = "";
+    $("fotoEditorPerfil").src = estudiante.foto || FOTO_DEFAULT;
+    $("correoEditorPerfil").value = estudiante.correo || "";
+    $("telefonoEditorPerfil").value = estudiante.telefono || "";
+    dialogo.showModal();
+}
+
+function cerrarEditorPerfil() {
+    const dialogo = $("dialogoEditarPerfil");
+
+    if (dialogo?.open) {
+        dialogo.close();
+    }
+
+    state.fotoPerfilNueva = null;
 }
 
 function mostrarQrPerfil(estudiante) {
@@ -318,10 +368,8 @@ function mostrarQrPerfil(estudiante) {
     panel.classList.add("is-visible");
 }
 
-async function actualizarFotoEstudiante(evento, estudiante) {
+function previsualizarFotoEstudiante(evento) {
     const archivo = evento.target.files?.[0];
-    const boton = $("btnFotoPerfil");
-    const client = obtenerCliente();
 
     if (!archivo) {
         return;
@@ -333,47 +381,91 @@ async function actualizarFotoEstudiante(evento, estudiante) {
         return;
     }
 
+    state.fotoPerfilNueva = archivo;
+    $("fotoEditorPerfil").src = URL.createObjectURL(archivo);
+}
+
+async function guardarPerfilEstudiante(evento) {
+    evento.preventDefault();
+
+    const estudiante = state.perfilEstudiante;
+    const boton = $("btnGuardarPerfil");
+    const correo = $("correoEditorPerfil").value.trim().toLowerCase();
+    const telefono = $("telefonoEditorPerfil").value.trim();
+
+    if (!estudiante) {
+        return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) {
+        notificarError("Escribe un correo electrónico válido.");
+        return;
+    }
+
     boton.disabled = true;
+    let fotoSubidaPath = null;
+
     try {
-        const extension = archivo.type.split("/")[1].replace("jpeg", "jpg");
-        const path = `fotos/${estudiante.documento}_${Date.now()}.${extension}`;
-        const subida = await client.storage.from("estudiantes").upload(path, archivo, {
-            cacheControl: "3600",
-            upsert: false,
-            contentType: archivo.type
+        const client = obtenerCliente();
+        let foto = null;
+
+        if (state.fotoPerfilNueva) {
+            const extension = state.fotoPerfilNueva.type.split("/")[1].replace("jpeg", "jpg");
+            fotoSubidaPath = `fotos/${estudiante.documento}_${Date.now()}.${extension}`;
+            const subida = await client.storage.from("estudiantes").upload(fotoSubidaPath, state.fotoPerfilNueva, {
+                cacheControl: "3600",
+                upsert: false,
+                contentType: state.fotoPerfilNueva.type
+            });
+
+            if (subida.error) {
+                throw subida.error;
+            }
+
+            foto = client.storage.from("estudiantes").getPublicUrl(fotoSubidaPath).data?.publicUrl;
+
+            if (!foto) {
+                throw new Error("No se pudo obtener la URL de la foto.");
+            }
+        }
+
+        const { error } = await client.rpc("actualizar_perfil_estudiante", {
+            correo_nuevo: correo,
+            telefono_nuevo: telefono || null,
+            foto_nueva: foto
         });
-
-        if (subida.error) {
-            throw subida.error;
-        }
-
-        const { data: urlData } = client.storage.from("estudiantes").getPublicUrl(path);
-        const foto = urlData?.publicUrl;
-        if (!foto) {
-            throw new Error("No se pudo obtener la URL de la foto.");
-        }
-
-        const { error } = await client
-            .from("estudiantes")
-            .update({ foto })
-            .eq("id", estudiante.id);
 
         if (error) {
             throw error;
         }
 
-        $("fotoPerfilEstudiante").src = foto;
+        estudiante.correo = correo;
+        estudiante.telefono = telefono || null;
+        if (foto) {
+            estudiante.foto = foto;
+        }
+
+        $("correoEditorPerfil").value = correo;
+        $("telefonoEditorPerfil").value = telefono;
+        $("fotoPerfilEstudiante").src = estudiante.foto || FOTO_DEFAULT;
+        $("fotoEditorPerfil").src = estudiante.foto || FOTO_DEFAULT;
         const fotoSidebar = document.querySelector(".usuario img");
         if (fotoSidebar) {
-            fotoSidebar.src = foto;
+            fotoSidebar.src = estudiante.foto || FOTO_DEFAULT;
         }
-        notificarExito("Tu foto de perfil fue actualizada.");
+        cerrarEditorPerfil();
+        notificarExito("Tu perfil fue actualizado.");
     } catch (error) {
-        console.error("No se pudo actualizar la foto del estudiante:", error);
-        notificarError(obtenerMensajeError(error, "No se pudo actualizar la foto."));
+        if (fotoSubidaPath) {
+            await obtenerCliente()
+                .storage
+                .from("estudiantes")
+                .remove([fotoSubidaPath]);
+        }
+        console.error("No se pudo actualizar el perfil del estudiante:", error);
+        notificarError(obtenerMensajeError(error, "No se pudo actualizar el perfil."));
     } finally {
         boton.disabled = false;
-        evento.target.value = "";
     }
 }
 

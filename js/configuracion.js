@@ -729,7 +729,7 @@ const Configuracion = (() => {
         try {
             const { data, error } = await client
                 .from("usuarios")
-                .select("id, nombre, correo, rol, estado")
+                .select("id, nombre, correo, rol, estado, curso")
                 .eq("estado", "pendiente");
 
             if (error) {

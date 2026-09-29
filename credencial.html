@@ -98,6 +98,53 @@
         }
 
 
+        .credential-student-picker {
+
+            display:grid;
+
+            grid-column:1 / -1;
+
+            gap:7px;
+
+            max-width:560px;
+
+            margin:18px auto 0;
+
+        }
+
+
+        .credential-student-picker label {
+
+            color:#526177;
+
+            font-size:11px;
+
+            font-weight:800;
+
+        }
+
+
+        .credential-student-picker select {
+
+            width:100%;
+
+            min-height:42px;
+
+            padding:0 12px;
+
+            border:1px solid #dce4ee;
+
+            border-radius:8px;
+
+            background:#fff;
+
+            color:#172033;
+
+            font:inherit;
+
+        }
+
+
         .credential-status {
 
             display:inline-flex;
@@ -1083,6 +1130,22 @@
         <section class="credential-layout">
 
 
+        <div class="credential-student-picker">
+
+            <label for="seleccionarEstudianteCredencial">
+                Seleccionar estudiante
+            </label>
+
+            <select
+                id="seleccionarEstudianteCredencial"
+                aria-label="Seleccionar estudiante para generar credencial"
+            >
+                <option value="">Cargando estudiantes...</option>
+            </select>
+
+        </div>
+
+
             <!-- CREDENCIAL -->
 
             <section class="panel credential-panel">
@@ -1154,6 +1217,9 @@
 
 
 
+
+
+
                     <!-- CUERPO -->
 
                     <div class="credential-body">
@@ -1190,22 +1256,7 @@
                             <div class="details">
 
 
-                                <div class="detail">
-
-                                    <small>
-                                        Documento
-                                    </small>
-
-                                    <strong
-                                        id="documentoEstudiante"
-                                    >
-                                        —
-                                    </strong>
-
-                                </div>
-
-
-                                <div class="detail">
+                                <div class="clock">
 
                                     <small>
                                         Curso
