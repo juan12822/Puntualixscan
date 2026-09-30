@@ -729,7 +729,7 @@ const Configuracion = (() => {
         try {
             const { data, error } = await client
                 .from("usuarios")
-                .select("id, nombre, correo, rol, estado, curso")
+                .select("id, nombre, correo, documento, rol, estado, curso")
                 .eq("estado", "pendiente");
 
             if (error) {
@@ -766,7 +766,7 @@ const Configuracion = (() => {
                 <div class="approval-item">
                     <div class="approval-details">
                         <strong>${escaparHTML(solicitud.nombre || "Sin nombre")}</strong>
-                        <span>${escaparHTML(solicitud.correo || "")} · ${escaparHTML(solicitud.rol || "")} · ${escaparHTML(solicitud.curso || "Sin curso")}</span>
+                        <span>Documento: ${escaparHTML(solicitud.documento || "Sin documento")} · ${escaparHTML(solicitud.correo || "")} · ${escaparHTML(solicitud.rol || "")} · ${escaparHTML(solicitud.curso || "Sin curso")}</span>
                     </div>
                     <div class="approval-actions">
                         <button class="approval-accept" data-estado="aprobado" data-id="${solicitud.id}">Aprobar</button>

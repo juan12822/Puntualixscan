@@ -36,14 +36,21 @@ serve(async (req) => {
       estudiante = "Estudiante",
       documento = "",
       curso = "",
-      correoAcudiente = "",
+      correoAcudiente = [],
       fecha = "",
       hora = "",
       ingreso = "",
       estado = "Tarde"
     } = body ?? {};
 
-    if (!correoAcudiente) {
+    const destinatarios = (Array.isArray(correoAcudiente)
+      ? correoAcudiente
+      : String(correoAcudiente).split(/[;,]/))
+      .map((correo) => String(correo).trim().toLowerCase())
+      .filter(Boolean)
+      .filter((correo, index, correos) => correos.indexOf(correo) === index);
+
+    if (!destinatarios.length) {
       return new Response(
         JSON.stringify({ ok: false, error: "No hay correo del acudiente." }),
         {
@@ -75,7 +82,7 @@ serve(async (req) => {
 
     const email = await resend.emails.send({
       from: fromAddress,
-      to: [correoAcudiente],
+      to: destinatarios,
       subject: `Notificación de tardanza - ${estudiante}`,
       html
     });

@@ -1084,13 +1084,16 @@ async function verificarDuplicado(
 
 async function enviarCorreoAcudiente(estudiante, fecha, hora) {
 
-    const correoAcudiente = String(
-        estudiante?.correo_acudiente ||
-        estudiante?.acudiente_correo ||
-        ""
-    ).trim();
+    const correosAcudientes = [
+        estudiante?.correo_acudiente,
+        estudiante?.acudiente_correo
+    ]
+        .flatMap(valor => String(valor || "").split(/[;,]/))
+        .map(valor => valor.trim().toLowerCase())
+        .filter(Boolean)
+        .filter((correo, indice, correos) => correos.indexOf(correo) === indice);
 
-    if (!correoAcudiente) {
+    if (!correosAcudientes.length) {
 
         console.info(
             "No hay correo del acudiente para enviar notificación."
@@ -1119,7 +1122,7 @@ async function enviarCorreoAcudiente(estudiante, fecha, hora) {
                     estudiante: estudiante?.nombre || "Estudiante",
                     documento: estudiante?.documento || "",
                     curso: estudiante?.curso || "",
-                    correoAcudiente,
+                    correoAcudiente: correosAcudientes,
                     fecha,
                     hora,
                     ingreso: ingresoSeleccionado || "",

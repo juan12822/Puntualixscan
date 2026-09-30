@@ -140,9 +140,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         Swal.fire({
-            icon: 'success',
-            title: 'Solicitud enviada',
-            text: 'Tu cuenta quedó pendiente de aprobación por administración. Recibirás acceso cuando sea aprobada.',
+            icon: 'info',
+            title: `Registro recibido, ${nombre}`,
+            text: 'Tu solicitud fue enviada correctamente y está pendiente de revisión y aprobación por parte de un administrador. Podrás iniciar sesión cuando tu cuenta sea aprobada.',
             confirmButtonColor: '#165dff'
         }).then(() => {
             window.location.href = 'login.html';

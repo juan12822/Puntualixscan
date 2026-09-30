@@ -684,6 +684,31 @@
 
 
         if (
+            message.includes("pendiente de aprobación") ||
+            message.includes("pendiente de aprobacion")
+        ) {
+
+            return (
+                "Tu solicitud aún está pendiente de aprobación por parte de un administrador. " +
+                "Agradecemos tu paciencia; podrás ingresar cuando sea aprobada."
+            );
+        }
+
+
+        if (
+            message.includes("fue rechazada") ||
+            message.includes("rechazada por administración") ||
+            message.includes("rechazada por administracion")
+        ) {
+
+            return (
+                "Tu solicitud de acceso no fue aprobada por administración. " +
+                "Si consideras que se trata de un error, comunícate con la institución."
+            );
+        }
+
+
+        if (
             code ===
                 "REQUEST_TIMEOUT"
         ) {
