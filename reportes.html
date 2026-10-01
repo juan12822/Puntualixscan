@@ -419,13 +419,44 @@
             letter-spacing: .04em;
         }
 
-        @media (max-width: 600px) {
-            .student-profile {
-                grid-template-columns: auto 1fr;
+        @media (max-width: 800px) {
+            .report-filter-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
             }
 
-            .student-profile-action {
+            .report-filter-grid .report-field:first-child {
                 grid-column: 1 / -1;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .report-filter-grid {
+                grid-template-columns: 1fr;
+                padding: 14px;
+            }
+
+            .report-filter-grid .report-field:first-child {
+                grid-column: auto;
+            }
+
+            .student-profile {
+                grid-template-columns: auto minmax(0, 1fr);
+                gap: 12px;
+                padding: 16px;
+            }
+
+            .student-profile-photo {
+                width: 64px;
+                height: 64px;
+            }
+
+            .student-profile-actions {
+                grid-column: 1 / -1;
+                justify-content: stretch;
+            }
+
+            .student-profile-actions .student-profile-action {
+                flex: 1;
                 justify-content: center;
             }
 
@@ -435,6 +466,10 @@
 
             .student-profile-dialog-content {
                 padding: 18px;
+            }
+
+            .student-profile-dialog-actions button {
+                flex: 1;
             }
         }
 
@@ -1229,7 +1264,7 @@
                     </label>
                     <label class="student-profile-field">
                         Correo electrónico
-                        <input id="correoEditorPerfil" type="email" maxlength="150" required>
+                        <input id="correoEditorPerfil" type="email" readonly>
                     </label>
                     <label class="student-profile-field">
                         Teléfono

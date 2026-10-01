@@ -390,15 +390,10 @@ async function guardarPerfilEstudiante(evento) {
 
     const estudiante = state.perfilEstudiante;
     const boton = $("btnGuardarPerfil");
-    const correo = $("correoEditorPerfil").value.trim().toLowerCase();
+    const correo = String(estudiante?.correo || "").trim().toLowerCase();
     const telefono = $("telefonoEditorPerfil").value.trim();
 
     if (!estudiante) {
-        return;
-    }
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) {
-        notificarError("Escribe un correo electrónico válido.");
         return;
     }
 
