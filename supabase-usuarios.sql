@@ -230,6 +230,24 @@ grant execute on function public.es_administrador() to authenticated;
 grant execute on function public.listar_solicitudes_registro() to authenticated;
 grant execute on function public.actualizar_estado_registro(uuid, text) to authenticated;
 
+create or replace function public.es_personal_autorizado()
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+    select exists (
+        select 1
+        from public.usuarios
+        where id = auth.uid()
+          and rol in ('administrador', 'profesor')
+          and estado = 'aprobado'
+    );
+$$;
+
+revoke all on function public.es_personal_autorizado() from public;
+grant execute on function public.es_personal_autorizado() to authenticated;
+
 -- Permite que cada estudiante consulte y actualice únicamente su propio registro.
 alter table public.estudiantes enable row level security;
 
@@ -243,6 +261,7 @@ create policy "estudiante puede ver su registro"
             select documento
             from public.usuarios
             where id = auth.uid()
+              and rol = 'estudiante'
         )
     );
 
@@ -256,6 +275,7 @@ create policy "estudiante puede actualizar su foto"
             select documento
             from public.usuarios
             where id = auth.uid()
+              and rol = 'estudiante'
         )
     )
     with check (
@@ -263,6 +283,80 @@ create policy "estudiante puede actualizar su foto"
             select documento
             from public.usuarios
             where id = auth.uid()
+              and rol = 'estudiante'
+        )
+    );
+
+create or replace function public.validar_actualizacion_estudiante()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+    documento_usuario text;
+begin
+    if public.es_administrador() then
+        return new;
+    end if;
+
+    select documento
+    into documento_usuario
+    from public.usuarios
+    where id = auth.uid()
+      and rol = 'estudiante';
+
+    if documento_usuario is null
+       or old.documento is distinct from documento_usuario
+       or (to_jsonb(new) - array['foto', 'telefono'])
+          is distinct from (to_jsonb(old) - array['foto', 'telefono']) then
+        raise exception 'Solo puedes actualizar tu teléfono y tu fotografía.';
+    end if;
+
+    return new;
+end;
+$$;
+
+drop trigger if exists validar_actualizacion_estudiante on public.estudiantes;
+create trigger validar_actualizacion_estudiante
+    before update on public.estudiantes
+    for each row execute procedure public.validar_actualizacion_estudiante();
+
+grant select, insert, update, delete on public.estudiantes to authenticated;
+
+drop policy if exists "administrador gestiona estudiantes" on public.estudiantes;
+create policy "administrador gestiona estudiantes"
+    on public.estudiantes
+    for all
+    to authenticated
+    using (public.es_administrador())
+    with check (public.es_administrador());
+
+alter table public.asistencia enable row level security;
+grant select, insert, update, delete on public.asistencia to authenticated;
+
+drop policy if exists "personal aprobado gestiona asistencia" on public.asistencia;
+create policy "personal aprobado gestiona asistencia"
+    on public.asistencia
+    for all
+    to authenticated
+    using (public.es_personal_autorizado())
+    with check (public.es_personal_autorizado());
+
+drop policy if exists "estudiante consulta su asistencia" on public.asistencia;
+create policy "estudiante consulta su asistencia"
+    on public.asistencia
+    for select
+    to authenticated
+    using (
+        exists (
+            select 1
+            from public.estudiantes e
+            join public.usuarios u on u.documento = e.documento
+            where e.id = asistencia.estudiante_id
+              and u.id = auth.uid()
+              and u.rol = 'estudiante'
+              and u.estado = 'aprobado'
         )
     );
 
@@ -272,7 +366,21 @@ create policy "usuarios autenticados pueden subir fotos de estudiantes"
     on storage.objects
     for insert
     to authenticated
-    with check (bucket_id = 'estudiantes' and name like 'fotos/%');
+    with check (
+        bucket_id = 'estudiantes'
+        and name like 'fotos/%'
+        and (
+            public.es_administrador()
+            or exists (
+                select 1
+                from public.usuarios
+                where id = auth.uid()
+                  and rol = 'estudiante'
+                  and left(name, length('fotos/' || documento || '_'))
+                      = 'fotos/' || documento || '_'
+            )
+        )
+    );
 
 create or replace function public.actualizar_perfil_estudiante(
     correo_nuevo text,
@@ -287,6 +395,7 @@ as $$
 declare
     documento_estudiante text;
 begin
+    -- correo_nuevo se conserva por compatibilidad; el correo no se edita desde el perfil.
     if auth.uid() is null then
         raise exception 'No hay una sesión autenticada.';
     end if;
@@ -302,13 +411,11 @@ begin
     end if;
 
     update public.usuarios
-    set correo = lower(trim(correo_nuevo)),
-        telefono = nullif(trim(telefono_nuevo), '')
+    set telefono = nullif(trim(telefono_nuevo), '')
     where id = auth.uid();
 
     update public.estudiantes
-    set correo = lower(trim(correo_nuevo)),
-        telefono = nullif(trim(telefono_nuevo), ''),
+    set telefono = nullif(trim(telefono_nuevo), ''),
         foto = coalesce(nullif(trim(foto_nueva), ''), foto)
     where documento = documento_estudiante;
 

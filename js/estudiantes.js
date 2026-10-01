@@ -2352,7 +2352,7 @@ async function eliminarEstudiante(
 
                 html:
                     `
-                        Se eliminará el registro de
+                        Se eliminarán la ficha, el acceso, la foto y el historial de asistencia de
                         <strong>
                             ${escaparHTML(estudiante.nombre)}
                         </strong>.
@@ -2423,40 +2423,23 @@ async function eliminarEstudiante(
         const client =
             obtenerCliente();
 
-
-        const {
-            error
-        } =
-            await client
-                .from(
-                    CONFIG_ESTUDIANTES.tabla
-                )
-                .delete()
-                .eq(
-                    "id",
-                    estudiante.id
-                );
-
+        const { data, error } = await client.functions.invoke(
+            "eliminar-estudiante",
+            {
+                body: {
+                    studentId: estudiante.id
+                }
+            }
+        );
 
         if (error) {
-
             throw error;
-
         }
 
-
-        const path =
-            obtenerPathFotografia(
-                estudiante.foto
+        if (!data?.ok) {
+            throw new Error(
+                data?.error || "No se pudo eliminar completamente el estudiante."
             );
-
-
-        if (path) {
-
-            await eliminarFotografia(
-                path
-            );
-
         }
 
 
@@ -2467,7 +2450,7 @@ async function eliminarEstudiante(
 
 
         mostrarExito(
-            "El estudiante fue eliminado correctamente."
+            "Se eliminaron el estudiante, su acceso y sus datos asociados."
         );
 
 

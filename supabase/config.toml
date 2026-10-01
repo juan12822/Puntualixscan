@@ -1,0 +1,7 @@
+project_id = "puntualixscan"
+
+[functions.eliminar-estudiante]
+verify_jwt = true
+
+[functions.enviar-correo-acudiente]
+verify_jwt = true
