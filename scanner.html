@@ -157,6 +157,11 @@
         }
 
 
+        #btnCambiarCamara[hidden] {
+            display: none;
+        }
+
+
         #reader video {
 
             width:100% !important;
@@ -1087,6 +1092,22 @@
                             <i class="fa-solid fa-stop"></i>
 
                             Detener cámara
+
+                        </button>
+
+
+                        <button
+                            type="button"
+                            id="btnCambiarCamara"
+                            class="btn btn-primary"
+                            aria-label="Cambiar entre cámara trasera y frontal"
+                            hidden
+                            disabled
+                        >
+
+                            <i class="fa-solid fa-camera-rotate" aria-hidden="true"></i>
+
+                            Cambiar cámara
 
                         </button>
 

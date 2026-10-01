@@ -17,6 +17,8 @@ let estadoSeleccionado = "";
 let camaraActiva = false;
 let procesandoQR = false;
 let registrando = false;
+let permitirCambioCamara = false;
+let modoCamaraMovil = "environment";
 
 let html5QrCode = null;
 let eventosRegistrados = false;
@@ -32,6 +34,7 @@ const reader = $("reader");
 
 const btnIniciar = $("btnIniciar");
 const btnDetener = $("btnDetener");
+const btnCambiarCamara = $("btnCambiarCamara");
 const btnRegistrar = $("btnRegistrar");
 const codigoManual = $("codigoManual");
 const btnBuscarCodigo = $("btnBuscarCodigo");
@@ -318,6 +321,15 @@ function obtenerHoraColombia() {
 }
 
 
+function esDispositivoMovil() {
+    return Boolean(
+        navigator.userAgentData?.mobile ||
+        /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+        (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+    );
+}
+
+
 /* ============================================================
    INICIAR CAMARA
    ============================================================ */
@@ -353,6 +365,11 @@ async function iniciarCamara() {
             "📷 Iniciando cámara..."
         );
 
+        if (btnCambiarCamara) {
+            btnCambiarCamara.hidden = true;
+            btnCambiarCamara.disabled = true;
+        }
+
         const cameras =
             await Html5Qrcode.getCameras();
 
@@ -371,6 +388,14 @@ async function iniciarCamara() {
             return;
         }
 
+        permitirCambioCamara =
+            esDispositivoMovil() && cameras.length > 1;
+
+        if (btnCambiarCamara) {
+            btnCambiarCamara.hidden = !permitirCambioCamara;
+            btnCambiarCamara.disabled = true;
+        }
+
         if (!html5QrCode) {
 
             html5QrCode =
@@ -381,12 +406,13 @@ async function iniciarCamara() {
             reader.style.display = "block";
         }
 
-        const cameraId =
-            cameras[0].id;
+        const camera = esDispositivoMovil()
+            ? { facingMode: modoCamaraMovil }
+            : cameras[0].id;
 
         await html5QrCode.start(
 
-            cameraId,
+            camera,
 
             {
                 fps: 10,
@@ -441,6 +467,10 @@ async function iniciarCamara() {
             btnDetener.disabled = false;
         }
 
+        if (btnCambiarCamara && permitirCambioCamara) {
+            btnCambiarCamara.disabled = false;
+        }
+
         mostrarMensaje(
             "📷 Cámara activa. Escanea el código QR."
         );
@@ -462,14 +492,42 @@ async function iniciarCamara() {
             btnDetener.disabled = true;
         }
 
+        if (btnCambiarCamara) {
+            btnCambiarCamara.hidden = !permitirCambioCamara;
+            btnCambiarCamara.disabled = !permitirCambioCamara;
+        }
+
+        const mensajeError = !window.isSecureContext
+            ? "El navegador solo permite usar la cámara en una página HTTPS o en localhost."
+            : error?.message || "Verifica los permisos de la cámara.";
+
         await alerta({
             icon: "error",
             title: "No se pudo iniciar la cámara",
-            text:
-                error?.message ||
-                "Verifica los permisos de la cámara."
+            text: mensajeError
         });
     }
+}
+
+
+async function cambiarCamara() {
+    if (!permitirCambioCamara) {
+        return;
+    }
+
+    if (btnCambiarCamara) {
+        btnCambiarCamara.disabled = true;
+    }
+
+    if (camaraActiva) {
+        await detenerCamara();
+    }
+
+    modoCamaraMovil = modoCamaraMovil === "environment"
+        ? "user"
+        : "environment";
+
+    await iniciarCamara();
 }
 
 
@@ -518,6 +576,11 @@ async function detenerCamara() {
 
         if (btnDetener) {
             btnDetener.disabled = true;
+        }
+
+        if (btnCambiarCamara) {
+            btnCambiarCamara.hidden = true;
+            btnCambiarCamara.disabled = true;
         }
     }
 }
@@ -1730,6 +1793,13 @@ function registrarEventos() {
         btnDetener.addEventListener(
             "click",
             detenerCamara
+        );
+    }
+
+    if (btnCambiarCamara) {
+        btnCambiarCamara.addEventListener(
+            "click",
+            cambiarCamara
         );
     }
 
