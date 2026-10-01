@@ -7,6 +7,7 @@ El borrado de estudiantes usa la Edge Function `eliminar-estudiante`. Despliega 
 ```powershell
 supabase login
 supabase functions deploy eliminar-estudiante --project-ref dejuztyypfxtejfjfmlp
+supabase functions deploy enviar-correo-acudiente --project-ref dejuztyypfxtejfjfmlp
 ```
 
 La función usa `SUPABASE_URL`, `SUPABASE_ANON_KEY` y `SUPABASE_SERVICE_ROLE_KEY` del entorno de Edge Functions. No agregues la llave `service_role` al código del navegador ni al repositorio.
