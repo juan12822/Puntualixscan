@@ -382,7 +382,9 @@ create policy "usuarios autenticados pueden subir fotos de estudiantes"
         )
     );
 
-create or replace function public.actualizar_perfil_estudiante(
+drop function if exists public.actualizar_perfil_estudiante(text, text, text);
+
+create function public.actualizar_perfil_estudiante(
     correo_nuevo text,
     telefono_nuevo text,
     foto_nueva text default null
