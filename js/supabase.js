@@ -2399,5 +2399,137 @@
     global.db =
         client;
 
+    iniciarSeguimientoPresenciaProfesores();
+
+
+    function iniciarSeguimientoPresenciaProfesores() {
+
+        const paginasInstitucionales = new Set([
+            "dashboard.html",
+            "estudiantes.html",
+            "scanner.html",
+            "reportes.html",
+            "credencial.html",
+            "configuracion.html"
+        ]);
+        const pagina = String(
+            global.location.pathname.split("/").pop() || ""
+        ).toLowerCase();
+
+        if (!paginasInstitucionales.has(pagina)) {
+            return;
+        }
+
+        let temporizador = null;
+        let registrando = false;
+
+        async function registrarActividad() {
+
+            if (
+                registrando ||
+                document.visibilityState === "hidden"
+            ) {
+                return;
+            }
+
+            registrando = true;
+
+            try {
+                const resultadoUsuario =
+                    await client.auth.getUser();
+
+                if (resultadoUsuario.error) {
+                    throw resultadoUsuario.error;
+                }
+
+                const usuario = resultadoUsuario.data?.user;
+                if (!usuario?.id) {
+                    return;
+                }
+
+                const resultadoPerfil = await client
+                    .from("usuarios")
+                    .select("rol, estado")
+                    .eq("id", usuario.id)
+                    .maybeSingle();
+
+                if (resultadoPerfil.error) {
+                    throw resultadoPerfil.error;
+                }
+
+                if (
+                    resultadoPerfil.data?.rol !== "profesor" ||
+                    resultadoPerfil.data?.estado !== "aprobado"
+                ) {
+                    return;
+                }
+
+                const resultadoPresencia = await client.rpc(
+                    "registrar_presencia_profesor",
+                    { pagina_actual: pagina }
+                );
+
+                if (resultadoPresencia.error) {
+                    throw resultadoPresencia.error;
+                }
+
+            } catch (error) {
+                logger.warn(
+                    "No se pudo actualizar la actividad del profesor.",
+                    error
+                );
+            } finally {
+                registrando = false;
+            }
+        }
+
+        function iniciarTemporizador() {
+            if (temporizador !== null) {
+                return;
+            }
+
+            registrarActividad();
+            temporizador = global.setInterval(
+                registrarActividad,
+                60000
+            );
+        }
+
+        function detenerTemporizador() {
+            if (temporizador === null) {
+                return;
+            }
+
+            global.clearInterval(temporizador);
+            temporizador = null;
+        }
+
+        document.addEventListener(
+            "visibilitychange",
+            () => {
+                if (document.visibilityState === "hidden") {
+                    detenerTemporizador();
+                    return;
+                }
+
+                iniciarTemporizador();
+            }
+        );
+
+        if (typeof client.auth.onAuthStateChange === "function") {
+            client.auth.onAuthStateChange(event => {
+                global.setTimeout(() => {
+                    if (event === "SIGNED_OUT") {
+                        detenerTemporizador();
+                    } else {
+                        iniciarTemporizador();
+                    }
+                }, 0);
+            });
+        }
+
+        iniciarTemporizador();
+    }
+
 
 })(window);

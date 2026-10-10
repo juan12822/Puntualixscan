@@ -303,6 +303,12 @@ function configurarEventos() {
             seleccionarEstudiante
         );
 
+    $("buscarEstudianteCredencial")
+        ?.addEventListener(
+            "input",
+            filtrarEstudiantesCredencial
+        );
+
 
     $("btnCerrarSesion")
         ?.addEventListener(
@@ -516,6 +522,71 @@ function cargarSelectorEstudiantes() {
         return;
     }
 
+    renderizarOpcionesEstudiantes(state.estudiantes);
+
+    selector.disabled =
+        state.estudiantes.length === 0;
+
+    if (state.estudiantes.length === 0) {
+        const mensaje =
+            $("resultadoBusquedaCredencial");
+
+        if (mensaje) {
+            mensaje.textContent =
+                "No hay estudiantes disponibles.";
+        }
+    }
+
+}
+
+
+function filtrarEstudiantesCredencial() {
+
+    const busqueda =
+        normalizarTexto(
+            $("buscarEstudianteCredencial")?.value || ""
+        );
+
+    const estudiantes =
+        !busqueda
+            ? state.estudiantes
+            : state.estudiantes.filter(estudiante => {
+                const nombre =
+                    normalizarTexto(estudiante.nombre);
+
+                const documento =
+                    normalizarTexto(estudiante.documento);
+
+                return (
+                    nombre.includes(busqueda) ||
+                    documento.includes(busqueda)
+                );
+            });
+
+    renderizarOpcionesEstudiantes(estudiantes);
+
+    const mensaje =
+        $("resultadoBusquedaCredencial");
+
+    if (mensaje) {
+        mensaje.textContent =
+            estudiantes.length
+                ? `${estudiantes.length} estudiante(s) encontrado(s). Selecciona uno de la lista.`
+                : "No se encontraron estudiantes con ese nombre o documento.";
+    }
+
+}
+
+
+function renderizarOpcionesEstudiantes(estudiantes) {
+
+    const selector =
+        $("seleccionarEstudianteCredencial");
+
+    if (!selector) {
+        return;
+    }
+
     selector.replaceChildren();
 
     const opcionInicial =
@@ -525,7 +596,7 @@ function cargarSelectorEstudiantes() {
     opcionInicial.textContent = "Selecciona un estudiante...";
     selector.append(opcionInicial);
 
-    state.estudiantes.forEach(estudiante => {
+    estudiantes.forEach(estudiante => {
         const opcion =
             document.createElement("option");
 
@@ -539,11 +610,13 @@ function cargarSelectorEstudiantes() {
     });
 
     selector.disabled =
-        state.estudiantes.length === 0;
+        estudiantes.length === 0;
 
-    if (state.estudiantes.length === 0) {
+    if (estudiantes.length === 0) {
         opcionInicial.textContent =
-            "No hay estudiantes disponibles";
+            state.estudiantes.length
+                ? "No hay coincidencias"
+                : "No hay estudiantes disponibles";
     }
 
 }
@@ -573,7 +646,42 @@ function seleccionarEstudiante(event) {
         JSON.stringify(estudiante)
     );
 
+    const busqueda =
+        $("buscarEstudianteCredencial");
+
+    if (busqueda) {
+        busqueda.value = "";
+    }
+
+    renderizarOpcionesEstudiantes(state.estudiantes);
+
+    const selector =
+        $("seleccionarEstudianteCredencial");
+
+    if (selector) {
+        selector.value = String(estudiante.id || "");
+    }
+
+    const mensaje =
+        $("resultadoBusquedaCredencial");
+
+    if (mensaje) {
+        mensaje.textContent =
+            `${state.estudiantes.length} estudiante(s) disponible(s).`;
+    }
+
     mostrarCredencial(estudiante);
+
+}
+
+
+function normalizarTexto(valor) {
+
+    return String(valor || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim()
+        .toLocaleLowerCase("es");
 
 }
 

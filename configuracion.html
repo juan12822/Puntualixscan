@@ -617,6 +617,87 @@
             font-size: 10px;
         }
 
+        .profesor-presencia-overview {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .profesor-presencia-stat {
+            display: grid;
+            gap: 4px;
+            padding: 12px;
+            border: 1px solid #e5ebf3;
+            border-radius: 10px;
+            background: #fafcff;
+        }
+
+        .profesor-presencia-stat strong {
+            color: #172033;
+            font-size: 20px;
+        }
+
+        .profesor-presencia-stat span {
+            color: #718096;
+            font-size: 9px;
+            font-weight: 700;
+        }
+
+        .profesor-presencia-status {
+            display: inline-flex !important;
+            align-items: center;
+            gap: 6px;
+            font-weight: 800;
+        }
+
+        .profesor-presencia-status::before {
+            width: 7px;
+            height: 7px;
+            flex: 0 0 7px;
+            border-radius: 50%;
+            background: currentColor;
+            content: "";
+        }
+
+        .profesor-presencia-status.is-online {
+            color: #13815f;
+        }
+
+        .profesor-presencia-status.is-offline {
+            color: #718096;
+        }
+
+        .profesor-presencia-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .profesor-presencia-actions .config-btn {
+            min-height: 36px;
+            padding: 0 10px;
+            font-size: 9px;
+        }
+
+        .profesor-presencia-note {
+            margin: 0 0 12px;
+            color: #718096;
+            font-size: 9px;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 600px) {
+            .profesor-presencia-actions {
+                align-items: flex-end;
+                flex-direction: column;
+            }
+
+            .profesor-presencia-actions .config-btn {
+                min-height: 32px;
+            }
+        }
+
 
         /* =================================================
            RESPONSIVE
@@ -1200,6 +1281,46 @@
                             </div>
                         </div>
 
+                    </section>
+
+                    <section id="panelProfesoresConectados" class="config-panel" hidden>
+                        <div class="config-panel-header">
+                            <div class="config-panel-title">
+                                <div class="config-panel-icon">
+                                    <i class="fa-solid fa-user-group" aria-hidden="true"></i>
+                                </div>
+                                <div>
+                                    <h2>Profesores en la plataforma</h2>
+                                    <p>Consulta quiénes están conectados y su última actividad.</p>
+                                </div>
+                            </div>
+                            <div class="profesor-presencia-actions">
+                                <span id="actualizadoProfesoresEnLinea" class="approval-empty">Sin actualizar</span>
+                                <button id="btnActualizarProfesoresEnLinea" class="config-btn config-btn-secondary" type="button">
+                                    <i class="fa-solid fa-rotate" aria-hidden="true"></i>
+                                    Actualizar
+                                </button>
+                            </div>
+                        </div>
+                        <div class="config-panel-body">
+                            <div class="profesor-presencia-overview" aria-live="polite">
+                                <div class="profesor-presencia-stat">
+                                    <strong id="totalProfesoresAprobados">0</strong>
+                                    <span>Profesores aprobados</span>
+                                </div>
+                                <div class="profesor-presencia-stat">
+                                    <strong id="totalProfesoresEnLinea">0</strong>
+                                    <span>Usando la plataforma ahora</span>
+                                </div>
+                            </div>
+                            <p class="profesor-presencia-note">
+                                La actividad se actualiza mientras el profesor mantiene visible una página institucional.
+                                Se considera en línea si reportó actividad en los últimos 2 minutos.
+                            </p>
+                            <div id="listaProfesoresEnLinea" class="approval-list" aria-live="polite">
+                                <p class="approval-empty">Cargando profesores...</p>
+                            </div>
+                        </div>
                     </section>
 
 

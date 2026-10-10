@@ -20,6 +20,12 @@ const Configuracion = (() => {
     let inicializado =
         false;
 
+    let profesoresActualizando =
+        false;
+
+    let intervaloProfesores =
+        null;
+
 
     /* =====================================================
        SELECTOR
@@ -96,6 +102,8 @@ const Configuracion = (() => {
 
         await cargarSolicitudes();
 
+        await iniciarMonitoreoProfesores();
+
 
         actualizarInterfaz();
 
@@ -145,6 +153,12 @@ const Configuracion = (() => {
             ?.addEventListener(
                 "click",
                 gestionarSolicitud
+            );
+
+        $("btnActualizarProfesoresEnLinea")
+            ?.addEventListener(
+                "click",
+                cargarProfesoresActivos
             );
 
 
@@ -709,6 +723,386 @@ const Configuracion = (() => {
                 "Administrador";
 
         }
+
+    }
+
+
+    async function iniciarMonitoreoProfesores() {
+
+        const panel =
+            $("panelProfesoresConectados");
+
+        const client =
+            window.PUNTUALIXSCAN?.client;
+
+        if (!panel || !client) {
+            return;
+        }
+
+        try {
+            const resultado =
+                await client.rpc("es_administrador");
+
+            if (resultado.error) {
+                throw resultado.error;
+            }
+
+            if (resultado.data !== true) {
+                panel.hidden = true;
+                return;
+            }
+
+            panel.hidden = false;
+            await cargarProfesoresActivos();
+
+            intervaloProfesores =
+                window.setInterval(
+                    cargarProfesoresActivos,
+                    30000
+                );
+
+        } catch (error) {
+            console.error(
+                "No se pudo verificar el acceso al estado de profesores:",
+                error
+            );
+
+            panel.hidden = true;
+        }
+
+    }
+
+
+    async function cargarProfesoresActivos() {
+
+        if (profesoresActualizando) {
+            return;
+        }
+
+        const panel =
+            $("panelProfesoresConectados");
+
+        const client =
+            window.PUNTUALIXSCAN?.client;
+
+        const contenedor =
+            $("listaProfesoresEnLinea");
+
+        if (!panel || panel.hidden || !client || !contenedor) {
+            return;
+        }
+
+        profesoresActualizando = true;
+
+        const boton =
+            $("btnActualizarProfesoresEnLinea");
+
+        if (boton) {
+            boton.disabled = true;
+        }
+
+        mostrarEstadoProfesores(
+            "Actualizando estado de profesores..."
+        );
+
+        try {
+            const profesores =
+                await obtenerProfesoresAprobados(client);
+
+            const { data: presencias, error } = await client
+                .from("presencia_profesores")
+                .select("usuario_id, ultima_actividad, pagina");
+
+            if (error) {
+                throw error;
+            }
+
+            renderizarProfesoresActivos(
+                profesores,
+                Array.isArray(presencias) ? presencias : []
+            );
+
+            ponerTexto(
+                "actualizadoProfesoresEnLinea",
+                `Actualizado ${new Intl.DateTimeFormat(
+                    "es-CO",
+                    {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        timeZone: "America/Bogota"
+                    }
+                ).format(new Date())}`
+            );
+
+        } catch (error) {
+            console.error(
+                "No se pudo cargar el estado de profesores:",
+                error
+            );
+
+            mostrarEstadoProfesores(
+                "No se pudo cargar el estado. Verifica que hayas ejecutado supabase-presencia-profesores.sql en Supabase y vuelve a intentar."
+            );
+
+        } finally {
+            profesoresActualizando = false;
+
+            if (boton) {
+                boton.disabled = false;
+            }
+        }
+
+    }
+
+
+    async function obtenerProfesoresAprobados(client) {
+
+        const profesores = [];
+        const pageSize = 500;
+
+        for (
+            let inicio = 0;
+            ;
+            inicio += pageSize
+        ) {
+            const { data, error } = await client
+                .from("usuarios")
+                .select("id, nombre, correo")
+                .eq("rol", "profesor")
+                .eq("estado", "aprobado")
+                .order("nombre", { ascending: true })
+                .range(inicio, inicio + pageSize - 1);
+
+            if (error) {
+                throw error;
+            }
+
+            const pagina =
+                Array.isArray(data)
+                    ? data
+                    : [];
+
+            profesores.push(...pagina);
+
+            if (pagina.length < pageSize) {
+                return profesores;
+            }
+        }
+
+    }
+
+
+    function renderizarProfesoresActivos(
+        profesores,
+        presencias
+    ) {
+
+        const contenedor =
+            $("listaProfesoresEnLinea");
+
+        if (!contenedor) {
+            return;
+        }
+
+        const presenciaPorUsuario =
+            new Map(
+                presencias.map(
+                    presencia => [
+                        String(presencia.usuario_id),
+                        presencia
+                    ]
+                )
+            );
+
+        const ahora =
+            Date.now();
+
+        const registros =
+            profesores.map(profesor => {
+                const presencia =
+                    presenciaPorUsuario.get(
+                        String(profesor.id)
+                    );
+
+                const tiempo =
+                    presencia
+                        ? Date.parse(presencia.ultima_actividad)
+                        : NaN;
+
+                const diferencia =
+                    ahora - tiempo;
+
+                return {
+                    profesor,
+                    presencia,
+                    enLinea:
+                        Number.isFinite(tiempo) &&
+                        diferencia >= -30000 &&
+                        diferencia <= 120000
+                };
+            });
+
+        ponerTexto(
+            "totalProfesoresAprobados",
+            profesores.length
+        );
+
+        ponerTexto(
+            "totalProfesoresEnLinea",
+            registros.filter(
+                registro => registro.enLinea
+            ).length
+        );
+
+        contenedor.replaceChildren();
+
+        if (!registros.length) {
+            mostrarEstadoProfesores(
+                "No hay profesores con acceso aprobado."
+            );
+            return;
+        }
+
+        const fragmento =
+            document.createDocumentFragment();
+
+        registros.forEach(
+            ({
+                profesor,
+                presencia,
+                enLinea
+            }) => {
+                const fila =
+                    document.createElement("div");
+
+                fila.className =
+                    "approval-item";
+
+                const datos =
+                    document.createElement("div");
+
+                datos.className =
+                    "approval-details";
+
+                const nombre =
+                    document.createElement("strong");
+
+                nombre.textContent =
+                    profesor.nombre ||
+                    "Profesor sin nombre";
+
+                const correo =
+                    document.createElement("span");
+
+                correo.textContent =
+                    profesor.correo ||
+                    "Sin correo registrado";
+
+                const actividad =
+                    document.createElement("span");
+
+                actividad.textContent =
+                    presencia
+                        ? `${enLinea ? "En uso:" : "Última actividad:"} ${etiquetaPagina(presencia.pagina)} · ${formatearActividad(presencia.ultima_actividad)}`
+                        : "Sin actividad registrada en la plataforma";
+
+                datos.append(
+                    nombre,
+                    correo,
+                    actividad
+                );
+
+                const estado =
+                    document.createElement("span");
+
+                estado.className =
+                    `profesor-presencia-status ${
+                        enLinea
+                            ? "is-online"
+                            : "is-offline"
+                    }`;
+
+                estado.textContent =
+                    enLinea
+                        ? "En línea"
+                        : "Desconectado";
+
+                fila.append(
+                    datos,
+                    estado
+                );
+
+                fragmento.appendChild(fila);
+            }
+        );
+
+        contenedor.appendChild(fragmento);
+
+    }
+
+
+    function mostrarEstadoProfesores(mensaje) {
+
+        const contenedor =
+            $("listaProfesoresEnLinea");
+
+        if (!contenedor) {
+            return;
+        }
+
+        const texto =
+            document.createElement("p");
+
+        texto.className =
+            "approval-empty";
+
+        texto.textContent =
+            mensaje;
+
+        contenedor.replaceChildren(texto);
+
+    }
+
+
+    function etiquetaPagina(pagina) {
+
+        const etiquetas = {
+            "dashboard.html": "Panel principal",
+            "estudiantes.html": "Estudiantes",
+            "scanner.html": "Escáner QR",
+            "reportes.html": "Reportes",
+            "credencial.html": "Credenciales",
+            "configuracion.html": "Configuración",
+            aplicacion: "Plataforma"
+        };
+
+        return etiquetas[pagina] ||
+            "Plataforma";
+
+    }
+
+
+    function formatearActividad(fecha) {
+
+        const instante =
+            new Date(fecha);
+
+        if (
+            Number.isNaN(
+                instante.getTime()
+            )
+        ) {
+            return "hora no disponible";
+        }
+
+        return new Intl.DateTimeFormat(
+            "es-CO",
+            {
+                dateStyle: "short",
+                timeStyle: "short",
+                timeZone: "America/Bogota"
+            }
+        ).format(instante);
 
     }
 

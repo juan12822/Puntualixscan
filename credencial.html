@@ -124,7 +124,8 @@
         }
 
 
-        .credential-student-picker select {
+        .credential-student-picker select,
+        .credential-student-picker input {
 
             width:100%;
 
@@ -141,6 +142,27 @@
             color:#172033;
 
             font:inherit;
+
+        }
+
+        .credential-student-picker input:focus,
+        .credential-student-picker select:focus {
+
+            border-color:#7ca8ef;
+
+            outline:none;
+
+            box-shadow:0 0 0 3px rgba(29,78,216,.08);
+
+        }
+
+        .credential-student-picker-hint {
+
+            margin:0;
+
+            color:#718096;
+
+            font-size:10px;
 
         }
 
@@ -1131,6 +1153,23 @@
 
 
         <div class="credential-student-picker">
+
+            <label for="buscarEstudianteCredencial">
+                Buscar estudiante por nombre o documento
+            </label>
+
+            <input
+                id="buscarEstudianteCredencial"
+                type="search"
+                placeholder="Escribe un nombre o documento..."
+                autocomplete="off"
+                aria-controls="seleccionarEstudianteCredencial"
+                aria-describedby="resultadoBusquedaCredencial"
+            >
+
+            <p id="resultadoBusquedaCredencial" class="credential-student-picker-hint" aria-live="polite">
+                Escribe para filtrar y luego selecciona un estudiante.
+            </p>
 
             <label for="seleccionarEstudianteCredencial">
                 Seleccionar estudiante
