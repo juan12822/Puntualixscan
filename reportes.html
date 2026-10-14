@@ -311,6 +311,13 @@
             max-height: min(88vh, 820px);
         }
 
+        .student-list-dialog-content {
+            display: grid;
+            grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+            height: min(84vh, 800px);
+            max-height: min(90vh, 860px);
+        }
+
         .student-chart-dialog-head,
         .student-chart-dialog-footer {
             display: flex;
@@ -353,6 +360,25 @@
         .student-chart-dialog-summary {
             padding: 12px 22px;
             background: #f6f8fc;
+        }
+
+        .student-list-search {
+            display: grid;
+            gap: 6px;
+            padding: 12px 22px;
+            border-bottom: 1px solid #eef1f5;
+            color: #526177;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .student-list-search input {
+            width: 100%;
+            min-height: 40px;
+            padding: 9px 12px;
+            border: 1px solid #dce3ed;
+            border-radius: 8px;
+            font: inherit;
         }
 
         .student-chart-dialog-table-wrap {
@@ -1566,12 +1592,12 @@
                     class="report-field"
                 >
 
-                    Curso
+                    Grado y grupo
 
                     <select id="filtroCurso">
 
                         <option value="">
-                            Todos los cursos
+                            Todos los grados y grupos
                         </option>
 
                     </select>
@@ -1704,7 +1730,7 @@
 
                         <i class="fa-solid fa-chart-column"></i>
 
-                        Asistencias por curso
+                        Asistencias por grado y grupo
 
                     </h2>
 
@@ -1951,84 +1977,22 @@
                 </div>
             </section>
 
-            <section class="cards" aria-label="Indicadores de estudiantes">
-                <article class="card">
-                    <i class="fa-solid fa-user-graduate" aria-hidden="true"></i>
-                    <p>Estudiantes activos</p>
-                    <h2 id="totalEstudiantesReporte">0</h2>
-                    <span>Incluidos en el análisis</span>
-                </article>
-                <article class="card amber">
-                    <i class="fa-solid fa-clock" aria-hidden="true"></i>
-                    <p>Estudiantes con tardanzas</p>
-                    <h2 id="estudiantesTardeReporte">0</h2>
-                    <span>Con al menos una llegada tarde</span>
-                </article>
-                <article class="card cyan">
-                    <i class="fa-solid fa-calendar-xmark" aria-hidden="true"></i>
-                    <p>Jornadas de tardanza</p>
-                    <h2 id="diasTardeReporte">0</h2>
-                    <span>Días distintos por estudiante</span>
-                </article>
-                <article class="card purple">
-                    <i class="fa-solid fa-user-minus" aria-hidden="true"></i>
-                    <p>Faltas estimadas</p>
-                    <h2 id="faltasEstimadasReporte">0</h2>
-                    <span>Estudiante-días sin registro</span>
-                </article>
-            </section>
-
             <section class="report-charts">
                 <article class="panel report-chart report-chart-students">
                     <div class="panel-head">
                         <div>
-                            <h2><i class="fa-solid fa-chart-column" aria-hidden="true"></i> Llegadas tarde por grado</h2>
-                            <p class="report-chart-explanation">Compara la cantidad de jornadas distintas en que los estudiantes llegaron tarde en cada grado.</p>
+                            <h2><i class="fa-solid fa-clock" aria-hidden="true"></i> Llegadas tarde por grado</h2>
+                            <p class="report-chart-explanation">Cantidad de registros de llegada tarde en cada grado durante el periodo seleccionado.</p>
                         </div>
                     </div>
-                    <p class="report-chart-interaction-hint" id="ayudaGraficaTardanzas">Haz clic en una barra para ver los estudiantes afectados.</p>
+                    <p class="report-chart-interaction-hint" id="ayudaGraficaTardanzas">Haz clic en una barra para ver los estudiantes y sus llegadas tarde por grupo.</p>
                     <canvas id="graficaTardanzasGrado" role="img" aria-label="Gráfica de llegadas tarde por grado"></canvas>
                 </article>
-                <article class="panel report-chart report-chart-students">
-                    <div class="panel-head">
-                        <div>
-                            <h2><i class="fa-solid fa-chart-bar" aria-hidden="true"></i> Faltas estimadas por grado</h2>
-                            <p class="report-chart-explanation">Suma de estudiante-días sin registro de asistencia. Es una estimación del periodo seleccionado.</p>
-                        </div>
-                    </div>
-                    <p class="report-chart-interaction-hint" id="ayudaGraficaFaltas">Haz clic en una barra para ver los estudiantes afectados.</p>
-                    <canvas id="graficaFaltasGrado" role="img" aria-label="Gráfica de faltas estimadas por grado"></canvas>
-                </article>
-            </section>
 
-            <section class="report-charts">
-                <article class="panel" style="min-width:0;overflow:hidden">
-                    <div class="panel-head">
-                        <h2><i class="fa-solid fa-ranking-star" aria-hidden="true"></i> Estudiantes con más tardanzas</h2>
-                        <button id="btnVerTodasTardanzas" class="btn btn-light student-report-toggle" type="button" aria-controls="tablaEstudiantesTarde" aria-expanded="false">
-                            Ver todos
-                        </button>
-                    </div>
-                    <div class="report-table-wrap">
-                        <table class="report-table">
-                            <thead>
-                                <tr>
-                                    <th>Estudiante</th>
-                                    <th>Grado / curso</th>
-                                    <th>Días tarde</th>
-                                    <th>Registros tarde</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tablaEstudiantesTarde">
-                                <tr><td colspan="4" class="student-report-empty">Cargando reporte...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </article>
                 <article class="panel" style="min-width:0;overflow:hidden">
                     <div class="panel-head">
                         <h2><i class="fa-solid fa-user-minus" aria-hidden="true"></i> Estudiantes con más faltas estimadas</h2>
-                        <button id="btnVerTodasFaltas" class="btn btn-light student-report-toggle" type="button" aria-controls="tablaEstudiantesFaltas" aria-expanded="false">
+                        <button id="btnVerTodasFaltas" class="btn btn-light student-report-toggle" type="button" aria-controls="dialogoTodasFaltas" aria-haspopup="dialog" disabled>
                             Ver todos
                         </button>
                     </div>
@@ -2038,12 +2002,11 @@
                                 <tr>
                                     <th>Estudiante</th>
                                     <th>Grado / curso</th>
-                                    <th>Días sin registro</th>
-                                    <th>Días con registro</th>
+                                    <th>Inasistencias</th>
                                 </tr>
                             </thead>
                             <tbody id="tablaEstudiantesFaltas">
-                                <tr><td colspan="4" class="student-report-empty">Cargando reporte...</td></tr>
+                                <tr><td colspan="3" class="student-report-empty">Cargando reporte...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -2055,7 +2018,7 @@
             <div class="student-chart-dialog-content">
                 <header class="student-chart-dialog-head">
                     <div>
-                        <h2 id="tituloEstudiantesGrafica">Estudiantes del grado</h2>
+                        <h2 id="tituloEstudiantesGrafica">Llegadas tarde del grado</h2>
                         <p id="periodoEstudiantesGrafica"></p>
                     </div>
                     <button id="cerrarDialogoEstudiantesGrafica" class="student-chart-dialog-close" type="button" aria-label="Cerrar detalle">
@@ -2071,6 +2034,42 @@
                 </div>
                 <footer class="student-chart-dialog-footer">
                     <button id="btnCerrarDetalleEstudiantesGrafica" class="btn btn-primary" type="button">Cerrar</button>
+                </footer>
+            </div>
+        </dialog>
+
+        <dialog id="dialogoTodasFaltas" class="student-chart-dialog" aria-labelledby="tituloListadoCompletoFaltas" aria-describedby="resumenListadoCompletoFaltas">
+            <div class="student-list-dialog-content">
+                <header class="student-chart-dialog-head">
+                    <div>
+                        <h2 id="tituloListadoCompletoFaltas">Todos los estudiantes con faltas estimadas</h2>
+                        <p>Listado completo ordenado desde quienes tienen más faltas.</p>
+                    </div>
+                    <button id="cerrarListadoCompletoFaltas" class="student-chart-dialog-close" type="button" aria-label="Cerrar listado">
+                        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                    </button>
+                </header>
+                <p id="resumenListadoCompletoFaltas" class="student-chart-dialog-summary"></p>
+                <label class="student-list-search">
+                    Buscar en el listado
+                    <input id="buscarTodasFaltas" type="search" placeholder="Buscar por nombre, documento o grado..." autocomplete="off">
+                </label>
+                <div class="student-chart-dialog-table-wrap">
+                    <table class="report-table">
+                        <thead>
+                            <tr>
+                                <th>Estudiante</th>
+                                <th>Grado / curso</th>
+                                <th>Inasistencias</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaListadoCompletoFaltas">
+                            <tr><td colspan="3" class="student-report-empty">No hay datos para mostrar.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <footer class="student-chart-dialog-footer">
+                    <button id="btnCerrarListadoCompletoFaltas" class="btn btn-primary" type="button">Cerrar</button>
                 </footer>
             </div>
         </dialog>

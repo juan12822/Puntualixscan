@@ -635,14 +635,9 @@ function cargarCursos() {
             )
         ]
         .sort(
-            (a, b) =>
-                a.localeCompare(
-                    b,
-                    "es",
-                    {
-                        numeric: true
-                    }
-                )
+            (a, b) => window.PUNTUALIXSCAN?.utils?.compararCursos
+                ? window.PUNTUALIXSCAN.utils.compararCursos(a, b)
+                : a.localeCompare(b, "es", { numeric: true })
         );
 
 

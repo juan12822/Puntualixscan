@@ -1013,11 +1013,9 @@
         const nombresCursos =
             Object.keys(cursos)
                 .sort(
-                    (a, b) =>
-                        a.localeCompare(
-                            b,
-                            "es"
-                        )
+                    (a, b) => window.PUNTUALIXSCAN?.utils?.compararCursos
+                        ? window.PUNTUALIXSCAN.utils.compararCursos(a, b)
+                        : a.localeCompare(b, "es", { numeric: true })
                 );
 
         const valoresCursos =

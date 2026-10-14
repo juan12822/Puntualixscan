@@ -6,7 +6,7 @@ create table if not exists public.usuarios (
     correo text not null unique,
     documento text unique,
     rol text not null default 'estudiante'
-        check (rol in ('estudiante', 'profesor', 'administrador')),
+        check (rol in ('estudiante', 'profesor', 'administrador', 'portero')),
     estado text not null default 'pendiente'
         check (estado in ('pendiente', 'aprobado', 'rechazado')),
     curso text,
@@ -32,7 +32,7 @@ alter table public.usuarios
 
 alter table public.usuarios
     add constraint usuarios_rol_check
-    check (rol in ('estudiante', 'profesor', 'administrador'));
+    check (rol in ('estudiante', 'profesor', 'administrador', 'portero'));
 
 update public.usuarios
 set estado = 'aprobado'

@@ -102,6 +102,8 @@ const Configuracion = (() => {
 
         await cargarSolicitudes();
 
+        await iniciarGestionPorteros();
+
         await iniciarMonitoreoProfesores();
 
 
@@ -159,6 +161,18 @@ const Configuracion = (() => {
             ?.addEventListener(
                 "click",
                 cargarProfesoresActivos
+            );
+
+        $("formCrearPortero")
+            ?.addEventListener(
+                "submit",
+                crearPortero
+            );
+
+        $("btnActualizarPorteros")
+            ?.addEventListener(
+                "click",
+                cargarPorteros
             );
 
 
@@ -770,6 +784,237 @@ const Configuracion = (() => {
             panel.hidden = true;
         }
 
+    }
+
+    async function iniciarGestionPorteros() {
+
+        const panel =
+            $("panelGestionPorteros");
+
+        const client =
+            window.PUNTUALIXSCAN?.client;
+
+        if (!panel || !client) {
+            return;
+        }
+
+        try {
+            const { data, error } =
+                await client.rpc("es_administrador");
+
+            if (error) {
+                throw error;
+            }
+
+            if (data !== true) {
+                panel.hidden = true;
+                return;
+            }
+
+            panel.hidden = false;
+            await cargarPorteros();
+        } catch (error) {
+            console.error(
+                "No se pudo verificar el acceso a la gestión de porteros:",
+                error
+            );
+            panel.hidden = true;
+        }
+    }
+
+
+    async function crearPortero(evento) {
+
+        evento.preventDefault();
+
+        const client =
+            window.PUNTUALIXSCAN?.client;
+
+        const form =
+            $("formCrearPortero");
+
+        const boton =
+            $("btnCrearPortero");
+
+        const nombre =
+            String($("nombrePortero")?.value || "").trim();
+
+        const correo =
+            String($("correoPortero")?.value || "").trim().toLowerCase();
+
+        const password =
+            String($("clavePortero")?.value || "");
+
+        if (!client || !form || !boton) {
+            return;
+        }
+
+        if (nombre.length < 2 || nombre.length > 100) {
+            notificar("El nombre debe tener entre 2 y 100 caracteres.", "warning");
+            return;
+        }
+
+        if (
+            correo.length > 254 ||
+            !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)
+        ) {
+            notificar("Ingresa un correo de contacto válido.", "warning");
+            return;
+        }
+
+        if (password.length < 8 || password.length > 72) {
+            notificar("La contraseña debe tener entre 8 y 72 caracteres.", "warning");
+            return;
+        }
+
+        boton.disabled = true;
+
+        try {
+            const { data, error } =
+                await client.functions.invoke(
+                    "crear-portero",
+                    {
+                        body: {
+                            nombre,
+                            correo,
+                            password
+                        }
+                    }
+                );
+
+            if (error) {
+                throw error;
+            }
+
+            if (!data?.codigo) {
+                throw new Error("La función no devolvió el código del portero.");
+            }
+
+            const resultado =
+                $("resultadoCrearPortero");
+
+            const texto =
+                resultado?.querySelector("span");
+
+            if (resultado && texto) {
+                texto.textContent =
+                    `Portero creado. Código de acceso: ${data.codigo}. La contraseña inicial es la que acabas de definir.`;
+                resultado.hidden = false;
+            }
+
+            form.reset();
+            await cargarPorteros();
+            notificar("El portero fue creado correctamente.", "success");
+        } catch (error) {
+            console.error("No se pudo crear el portero:", error);
+
+            let errorMessage =
+                String(error?.message || "");
+
+            const response = error?.context;
+            if (response && typeof response.clone === "function") {
+                try {
+                    const body = await response.clone().json();
+                    const serverMessage =
+                        body?.error ||
+                        body?.message ||
+                        body?.msg;
+                    if (typeof serverMessage === "string" && serverMessage.trim()) {
+                        errorMessage = `${serverMessage.trim()} (HTTP ${response.status})`;
+                    }
+                } catch (parseError) {
+                    console.warn(
+                        "No se pudo leer el detalle devuelto por crear-portero:",
+                        parseError
+                    );
+                }
+            }
+
+            const fetchError =
+                error?.name === "FunctionsFetchError" ||
+                /failed to send a request|failed to fetch|networkerror/i.test(errorMessage);
+
+            notificar(
+                fetchError
+                    ? "No se pudo conectar con la Edge Function crear-portero. Confirma que ejecutaste `supabase functions deploy crear-portero --project-ref dejuztyypfxtejfjfmlp`, que estás conectado a Internet y vuelve a cargar la página. Si ya la desplegaste, vuelve a desplegarla para actualizar CORS."
+                    : errorMessage
+                        ? `No se pudo crear el portero: ${errorMessage}`
+                        : "No se pudo crear el portero. Verifica la conexión y que hayas ejecutado supabase-porteros.sql.",
+                "error"
+            );
+        } finally {
+            boton.disabled = false;
+        }
+    }
+
+
+    async function cargarPorteros() {
+
+        const client =
+            window.PUNTUALIXSCAN?.client;
+
+        const contenedor =
+            $("listaPorteros");
+
+        if (!client || !contenedor) {
+            return;
+        }
+
+        mostrarEstadoPorteros("Cargando porteros...");
+
+        try {
+            const { data, error } = await client
+                .from("usuarios")
+                .select("codigo, nombre")
+                .eq("rol", "portero")
+                .not("codigo", "is", null)
+                .order("nombre", { ascending: true });
+
+            if (error) {
+                throw error;
+            }
+
+            if (!data?.length) {
+                mostrarEstadoPorteros("Todavía no hay porteros creados.");
+                return;
+            }
+
+            contenedor.innerHTML = data.map(portero => `
+                <div class="approval-item">
+                    <div class="approval-details">
+                        <strong>${escaparHTML(portero.nombre)}</strong>
+                        <span>Código: ${escaparHTML(portero.codigo)}</span>
+                    </div>
+                </div>
+            `).join("");
+        } catch (error) {
+            console.error("No se pudo cargar la lista de porteros:", error);
+            mostrarEstadoPorteros(
+                "No se pudo cargar la lista. Verifica que hayas ejecutado supabase-porteros.sql."
+            );
+        }
+    }
+
+
+    function mostrarEstadoPorteros(mensaje) {
+
+        const contenedor =
+            $("listaPorteros");
+
+        if (!contenedor) {
+            return;
+        }
+
+        const texto =
+            document.createElement("p");
+
+        texto.className =
+            "approval-empty";
+
+        texto.textContent =
+            mensaje;
+
+        contenedor.replaceChildren(texto);
     }
 
 

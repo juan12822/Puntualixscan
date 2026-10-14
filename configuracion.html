@@ -1283,6 +1283,56 @@
 
                     </section>
 
+                    <section id="panelGestionPorteros" class="config-panel" hidden>
+                        <div class="config-panel-header">
+                            <div class="config-panel-title">
+                                <div class="config-panel-icon">
+                                    <i class="fa-solid fa-person-booth" aria-hidden="true"></i>
+                                </div>
+                                <div>
+                                    <h2>Accesos de porteros</h2>
+                                    <p>Crea una cuenta con código de acceso y contraseña.</p>
+                                </div>
+                            </div>
+                            <button id="btnActualizarPorteros" type="button" class="config-btn config-btn-secondary">
+                                <i class="fa-solid fa-rotate" aria-hidden="true"></i>
+                                Actualizar
+                            </button>
+                        </div>
+                        <div class="config-panel-body">
+                            <form id="formCrearPortero">
+                                <div class="form-grid">
+                                    <div class="form-group full">
+                                        <label for="nombrePortero">Nombre del portero</label>
+                                        <input id="nombrePortero" type="text" maxlength="100" autocomplete="name" required>
+                                    </div>
+                                    <div class="form-group full">
+                                        <label for="correoPortero">Correo de contacto</label>
+                                        <input id="correoPortero" type="email" maxlength="254" autocomplete="email" required>
+                                    </div>
+                                    <div class="form-group full">
+                                        <label for="clavePortero">Contraseña inicial (mínimo 8 caracteres)</label>
+                                        <input id="clavePortero" type="password" minlength="8" maxlength="72" autocomplete="new-password" required>
+                                    </div>
+                                </div>
+                                <div class="config-actions">
+                                    <button id="btnCrearPortero" type="submit" class="config-btn config-btn-primary">
+                                        <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
+                                        Crear portero
+                                    </button>
+                                </div>
+                            </form>
+                            <div id="resultadoCrearPortero" class="config-alert" role="status" hidden>
+                                <i class="fa-solid fa-key" aria-hidden="true"></i>
+                                <span></span>
+                            </div>
+                            <p class="profesor-presencia-note">Entrega al portero el código generado y la contraseña que definiste. La contraseña no se vuelve a mostrar.</p>
+                            <div id="listaPorteros" class="approval-list" aria-live="polite">
+                                <p class="approval-empty">Cargando porteros...</p>
+                            </div>
+                        </div>
+                    </section>
+
                     <section id="panelProfesoresConectados" class="config-panel" hidden>
                         <div class="config-panel-header">
                             <div class="config-panel-title">

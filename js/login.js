@@ -234,6 +234,18 @@
             ""
         ).trim();
 
+        if (getSelectedRole() === "portero") {
+            const code = value.toUpperCase();
+
+            if (!/^PT-\d{10}$/.test(code)) {
+                throw new Error(
+                    "El código de portero debe tener el formato PT-1234567890."
+                );
+            }
+
+            return `${code.toLowerCase()}@porteros.puntualixscan.invalid`;
+        }
+
         if (
             global.PUNTUALIXSCAN?.utils?.isEmail(value)
         ) {
@@ -878,7 +890,7 @@
        REDIRECCIÓN CONTROLADA
        ======================================================== */
 
-    function redirectToDashboard() {
+    function redirectToDashboard(role = getSelectedRole()) {
 
         if (
             state.redirecting
@@ -893,7 +905,9 @@
 
 
         global.location.replace(
-            CONFIG.dashboard
+            normalizeRole(role) === "portero"
+                ? "scanner.html"
+                : CONFIG.dashboard
         );
     }
 
@@ -926,12 +940,16 @@
             }
 
 
-            await prepareAuthenticatedUser(
-                session.user
+            const authenticated =
+                await prepareAuthenticatedUser(
+                    session.user
+                );
+
+
+            redirectToDashboard(
+                authenticated.profile?.rol ||
+                session.user.user_metadata?.rol
             );
-
-
-            redirectToDashboard();
 
 
             return true;
@@ -1024,6 +1042,10 @@
 
         const selectedRole =
             getSelectedRole();
+
+        if (selectedRole === "portero") {
+            return null;
+        }
 
         const usuarios =
             getRegisteredUsers();
@@ -1140,7 +1162,9 @@
         } catch (error) {
 
             validationMessage =
-                "No encontramos un usuario con ese correo o documento.";
+                getSelectedRole() === "portero"
+                    ? error.message
+                    : "No encontramos un usuario con ese correo o documento.";
 
         }
 
@@ -1212,7 +1236,7 @@
                     false
             });
 
-            redirectToDashboard();
+            redirectToDashboard(localUser.rol);
             return;
         }
 
@@ -1272,7 +1296,7 @@
             });
 
 
-            redirectToDashboard();
+            redirectToDashboard(getSelectedRole());
 
 
         } catch (

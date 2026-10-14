@@ -5,3 +5,6 @@ verify_jwt = true
 
 [functions.enviar-correo-acudiente]
 verify_jwt = true
+
+[functions.crear-portero]
+verify_jwt = true

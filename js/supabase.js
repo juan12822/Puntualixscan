@@ -1604,6 +1604,42 @@
         );
     }
 
+    function compararCursos(
+        primerCurso,
+        segundoCurso
+    ) {
+
+        const analizarCurso = valor => {
+            const texto = String(valor || "").trim();
+            const coincidencia = texto.match(/^(preescolar|\d{1,2})(?:-(\d+))?$/i);
+
+            if (!coincidencia) {
+                return null;
+            }
+
+            return {
+                grado: coincidencia[1].toLowerCase() === "preescolar"
+                    ? 0
+                    : Number(coincidencia[1]),
+                grupo: Number(coincidencia[2] || 0)
+            };
+        };
+
+        const primero = analizarCurso(primerCurso);
+        const segundo = analizarCurso(segundoCurso);
+
+        if (primero && segundo) {
+            return primero.grado - segundo.grado ||
+                primero.grupo - segundo.grupo;
+        }
+
+        return String(primerCurso || "").localeCompare(
+            String(segundoCurso || ""),
+            CONFIG.locale,
+            { numeric: true, sensitivity: "base" }
+        );
+    }
+
 
     const utils = Object.freeze({
 
@@ -1806,7 +1842,9 @@
             safeJsonParse,
 
 
-        isEmail
+        isEmail,
+
+        compararCursos
     });
 
 
@@ -1910,7 +1948,13 @@
             return base;
         }
 
-        return base;
+        if (rol === "portero") {
+            return [
+                "scanner.html"
+            ];
+        }
+
+        return [];
     }
 
 
@@ -2017,9 +2061,13 @@
                 rol
             );
 
-        if (rol === "estudiante" && !permitido) {
+        if (!permitido) {
             global.location.replace(
-                "reportes.html"
+                rol === "portero"
+                    ? "scanner.html"
+                    : rol === "estudiante"
+                        ? "reportes.html"
+                        : "dashboard.html"
             );
             return;
         }
@@ -2127,7 +2175,7 @@
             paginaActual();
 
         if (
-            rol === "estudiante" &&
+            !rol ||
             !tienePermisoParaPagina(
                 pagina,
                 rol
@@ -2140,7 +2188,11 @@
             ) {
 
                 global.location.replace(
-                    "reportes.html"
+                    rol === "portero"
+                        ? "scanner.html"
+                        : rol === "estudiante"
+                            ? "reportes.html"
+                            : "login.html"
                 );
             }
 

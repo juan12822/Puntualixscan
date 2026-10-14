@@ -4,14 +4,12 @@
     const state = {
         students: [],
         attendance: [],
-        charts: {},
         loading: false,
         resultados: null,
+        chartTardanzas: null,
         puedeVerDetalle: false,
         fechaInicio: "",
-        fechaFin: "",
-        mostrarTodasTardanzas: false,
-        mostrarTodasFaltas: false
+        fechaFin: ""
     };
 
     const $ = id => document.getElementById(id);
@@ -23,8 +21,15 @@
         $("periodoReporteEstudiantes")?.addEventListener("change", cargarReporteEstudiantes);
         $("btnActualizarEstudiantes")?.addEventListener("click", cargarReporteEstudiantes);
         $("btnExportarEstudiantes")?.addEventListener("click", exportarReporteEstudiantes);
-        $("btnVerTodasTardanzas")?.addEventListener("click", () => alternarListado("tardanzas"));
-        $("btnVerTodasFaltas")?.addEventListener("click", () => alternarListado("faltas"));
+        $("btnVerTodasFaltas")?.addEventListener("click", abrirListadoCompletoFaltas);
+        $("buscarTodasFaltas")?.addEventListener("input", renderizarListadoCompletoFaltas);
+        $("cerrarListadoCompletoFaltas")?.addEventListener("click", cerrarListadoCompletoFaltas);
+        $("btnCerrarListadoCompletoFaltas")?.addEventListener("click", cerrarListadoCompletoFaltas);
+        $("dialogoTodasFaltas")?.addEventListener("click", evento => {
+            if (evento.target === $("dialogoTodasFaltas")) {
+                cerrarListadoCompletoFaltas();
+            }
+        });
         $("cerrarDialogoEstudiantesGrafica")?.addEventListener("click", cerrarDetalleGrafica);
         $("btnCerrarDetalleEstudiantesGrafica")?.addEventListener("click", cerrarDetalleGrafica);
         $("dialogoEstudiantesGrafica")?.addEventListener("click", evento => {
@@ -65,24 +70,7 @@
         );
 
         if (vista === "students") {
-            ajustarGraficasVisibles();
-        }
-    }
-
-    function ajustarGraficasVisibles() {
-        const ajustar = () => {
-            Object.values(state.charts).forEach(grafica => {
-                grafica?.resize();
-                grafica?.update("none");
-            });
-        };
-
-        if (typeof window.requestAnimationFrame === "function") {
-            window.requestAnimationFrame(() => {
-                window.requestAnimationFrame(ajustar);
-            });
-        } else {
-            ajustar();
+            window.requestAnimationFrame?.(() => state.chartTardanzas?.resize());
         }
     }
 
@@ -113,8 +101,8 @@
                 state.puedeVerDetalle = await verificarAccesoDetalle(client);
             } catch (error) {
                 state.puedeVerDetalle = false;
-                console.error("No se pudo verificar el rol del usuario para el detalle de gráficas:", error);
-                mostrarAviso("No se pudo verificar el permiso del usuario. El detalle de estudiantes no estará disponible.");
+                console.error("No se pudo verificar el permiso para ver el detalle de tardanzas:", error);
+                mostrarAviso("No se pudo verificar el permiso. La gráfica estará disponible, pero no el detalle de estudiantes.");
             }
 
             const periodo = Number($("periodoReporteEstudiantes")?.value || 365);
@@ -136,13 +124,8 @@
         } catch (error) {
             console.error("Error cargando el reporte de estudiantes:", error);
             state.resultados = null;
-            limpiarGraficas();
-            [
-                "totalEstudiantesReporte",
-                "estudiantesTardeReporte",
-                "diasTardeReporte",
-                "faltasEstimadasReporte"
-            ].forEach(id => ponerTexto(id, 0));
+            state.chartTardanzas?.destroy();
+            state.chartTardanzas = null;
             mostrarEstado("No fue posible cargar la información. Intenta actualizar el reporte.");
             mostrarError(error);
         } finally {
@@ -157,7 +140,7 @@
     }
 
     async function verificarAccesoDetalle(client) {
-        const rolLocal = obtenerRolLocal();
+        const rolLocal = normalizar(obtenerRolLocal());
         if (rolLocal) {
             return ["administrador", "profesor"].includes(rolLocal);
         }
@@ -181,7 +164,6 @@
         if (["administrador", "profesor"].includes(rolMetadata)) {
             return true;
         }
-
         if (!usuario?.id) {
             return false;
         }
@@ -191,11 +173,9 @@
             .select("rol")
             .eq("id", usuario.id)
             .maybeSingle();
-
         if (error) {
             throw error;
         }
-
         return ["administrador", "profesor"].includes(normalizar(data?.rol));
     }
 
@@ -291,55 +271,247 @@
             );
         });
 
-        const porTardanzas = [...estudiantes].sort(
-            (a, b) =>
-                b.diasTarde - a.diasTarde ||
-                b.llegadasTarde - a.llegadasTarde ||
-                compararNombres(a, b)
-        );
         const porFaltas = [...estudiantes].sort(
             (a, b) =>
                 b.faltasEstimadas - a.faltasEstimadas ||
                 compararNombres(a, b)
         );
-        const tardanzasTotal = estudiantes.reduce(
-            (total, estudiante) => total + estudiante.diasTarde,
-            0
-        );
-        const faltasTotal = estudiantes.reduce(
-            (total, estudiante) => total + estudiante.faltasEstimadas,
-            0
-        );
         state.resultados = {
             estudiantes,
-            diasOperativos: diasOperativos.size,
-            porTardanzas: porTardanzas.filter(estudiante => estudiante.diasTarde > 0),
             porFaltas: porFaltas.filter(estudiante => estudiante.faltasEstimadas > 0)
         };
 
-        ponerTexto("totalEstudiantesReporte", estudiantes.length);
-        ponerTexto(
-            "estudiantesTardeReporte",
-            estudiantes.filter(estudiante => estudiante.diasTarde > 0).length
-        );
-        ponerTexto("diasTardeReporte", tardanzasTotal);
-        ponerTexto("faltasEstimadasReporte", faltasTotal);
         renderizarTablasRanking();
-        renderizarGraficas(estudiantes);
+        renderizarGraficaTardanzas(estudiantes);
     }
 
-    function alternarListado(tipo) {
-        if (!state.resultados) {
+    function renderizarGraficaTardanzas(estudiantes) {
+        const canvas = $("graficaTardanzasGrado");
+        const ayuda = $("ayudaGraficaTardanzas");
+        if (!canvas) {
+            return;
+        }
+        if (typeof Chart === "undefined") {
+            console.error("Chart.js no está disponible para mostrar las llegadas tarde por grado.");
+            if (ayuda) {
+                ayuda.textContent = "No se pudo cargar la librería de gráficas. Actualiza la página para intentarlo de nuevo.";
+            }
             return;
         }
 
-        if (tipo === "tardanzas") {
-            state.mostrarTodasTardanzas = !state.mostrarTodasTardanzas;
-        } else {
-            state.mostrarTodasFaltas = !state.mostrarTodasFaltas;
+        state.chartTardanzas?.destroy();
+        const grados = [
+            "Preescolar",
+            ...Array.from({ length: 11 }, (_valor, indice) => `Grado ${indice + 1}`)
+        ];
+        const tardanzasPorGrado = new Map(
+            grados.map(grado => [grado, { total: 0, estudiantes: [] }])
+        );
+
+        estudiantes.forEach(estudiante => {
+            const metricas = tardanzasPorGrado.get(estudiante.grado);
+            if (!metricas || estudiante.llegadasTarde === 0) {
+                return;
+            }
+            metricas.total += estudiante.llegadasTarde;
+            metricas.estudiantes.push(estudiante);
+        });
+
+        if (ayuda) {
+            ayuda.textContent = state.puedeVerDetalle
+                ? "Haz clic en una barra para ver los estudiantes y sus llegadas tarde por grupo."
+                : "La gráfica muestra el total por grado. El detalle de estudiantes requiere permisos de administrador o profesor.";
+        }
+        canvas.style.cursor = state.puedeVerDetalle ? "pointer" : "default";
+
+        state.chartTardanzas = new Chart(canvas, {
+            type: "bar",
+            data: {
+                labels: grados,
+                datasets: [{
+                    label: "Llegadas tarde",
+                    data: grados.map(grado => tardanzasPorGrado.get(grado).total),
+                    backgroundColor: "#d99118",
+                    borderRadius: 7,
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: contexto => {
+                                const total = Number(contexto.parsed.y || 0);
+                                const estudiantesAfectados =
+                                    tardanzasPorGrado.get(grados[contexto.dataIndex]).estudiantes.length;
+                                return [
+                                    `${total} ${total === 1 ? "llegada tarde" : "llegadas tarde"}`,
+                                    `${estudiantesAfectados} ${estudiantesAfectados === 1 ? "estudiante" : "estudiantes"}`,
+                                    ...(state.puedeVerDetalle ? ["Haz clic para ver el detalle"] : [])
+                                ];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { precision: 0 },
+                        grid: { color: "#eef2f8" },
+                        title: {
+                            display: true,
+                            text: "Registros de llegada tarde",
+                            color: "#526177",
+                            font: { size: 10, weight: "bold" }
+                        }
+                    },
+                    x: {
+                        grid: { display: false },
+                        title: {
+                            display: true,
+                            text: "Grado",
+                            color: "#526177",
+                            font: { size: 10, weight: "bold" }
+                        }
+                    }
+                },
+                onClick: (_evento, elementosActivos) => {
+                    if (!state.puedeVerDetalle || !elementosActivos.length) {
+                        return;
+                    }
+                    const grado = grados[elementosActivos[0].index];
+                    const metricas = tardanzasPorGrado.get(grado);
+                    if (metricas) {
+                        mostrarDetalleTardanzas(grado, metricas);
+                    }
+                }
+            },
+            plugins: [{
+                id: "puntualixscanEtiquetasTardanzas",
+                afterDatasetsDraw(grafica) {
+                    const contexto = grafica.ctx;
+                    contexto.save();
+                    contexto.fillStyle = "#526177";
+                    contexto.font = "700 11px Inter, sans-serif";
+                    contexto.textAlign = "center";
+                    contexto.textBaseline = "bottom";
+                    grafica.getDatasetMeta(0).data.forEach((barra, indice) => {
+                        const valor = grafica.data.datasets[0].data[indice];
+                        if (Number(valor) > 0) {
+                            contexto.fillText(String(valor), barra.x, barra.y - 6);
+                        }
+                    });
+                    contexto.restore();
+                }
+            }]
+        });
+    }
+
+    function mostrarDetalleTardanzas(grado, metricas) {
+        const detalle = [...metricas.estudiantes].sort((a, b) =>
+            compararCursos(a.curso, b.curso) ||
+            b.llegadasTarde - a.llegadasTarde ||
+            compararNombres(a, b)
+        );
+        ponerTexto("tituloEstudiantesGrafica", `${grado}: llegadas tarde por grupo`);
+        ponerTexto(
+            "periodoEstudiantesGrafica",
+            `Periodo analizado: ${formatearFecha(state.fechaInicio)} al ${formatearFecha(state.fechaFin)}`
+        );
+        ponerTexto(
+            "resumenEstudiantesGrafica",
+            `${detalle.length} ${detalle.length === 1 ? "estudiante registró" : "estudiantes registraron"} ${metricas.total} ${metricas.total === 1 ? "llegada tarde" : "llegadas tarde"} en este grado.`
+        );
+
+        const encabezado = $("encabezadoEstudiantesGrafica");
+        const cuerpo = $("tablaDetalleEstudiantesGrafica");
+        if (!encabezado || !cuerpo) {
+            return;
         }
 
-        renderizarTablasRanking();
+        const filaEncabezado = document.createElement("tr");
+        ["Estudiante", "Documento", "Grupo / curso", "Días tarde", "Llegadas tarde"].forEach(titulo => {
+            const celda = document.createElement("th");
+            celda.textContent = titulo;
+            filaEncabezado.appendChild(celda);
+        });
+        encabezado.replaceChildren(filaEncabezado);
+        cuerpo.replaceChildren();
+
+        detalle.forEach(estudiante => {
+            const fila = document.createElement("tr");
+            [
+                estudiante.nombre || "Sin nombre",
+                estudiante.documento || "—",
+                estudiante.curso,
+                String(estudiante.diasTarde),
+                String(estudiante.llegadasTarde)
+            ].forEach((valor, indice) => {
+                const celda = document.createElement("td");
+                celda.textContent = valor;
+                if (indice === 0) {
+                    celda.className = "report-name";
+                } else if (indice === 4) {
+                    celda.className = "student-report-count";
+                }
+                fila.appendChild(celda);
+            });
+            cuerpo.appendChild(fila);
+        });
+
+        if (!detalle.length) {
+            const fila = document.createElement("tr");
+            const celda = document.createElement("td");
+            celda.colSpan = 5;
+            celda.className = "student-report-empty";
+            celda.textContent = "No se registraron llegadas tarde en este grado durante el periodo seleccionado.";
+            fila.appendChild(celda);
+            cuerpo.appendChild(fila);
+        }
+
+        $("dialogoEstudiantesGrafica")?.showModal();
+    }
+
+    function abrirListadoCompletoFaltas() {
+        if (!state.resultados) {
+            return;
+        }
+        const busqueda = $("buscarTodasFaltas");
+        if (busqueda) {
+            busqueda.value = "";
+        }
+        renderizarListadoCompletoFaltas();
+        $("dialogoTodasFaltas")?.showModal();
+    }
+
+    function cerrarListadoCompletoFaltas() {
+        const dialogo = $("dialogoTodasFaltas");
+        if (dialogo?.open) {
+            dialogo.close();
+        }
+    }
+
+    function renderizarListadoCompletoFaltas() {
+        if (!state.resultados) {
+            return;
+        }
+        const busqueda = normalizar($("buscarTodasFaltas")?.value || "");
+        const estudiantes = state.resultados.porFaltas.filter(estudiante =>
+            !busqueda || [
+                estudiante.nombre,
+                estudiante.documento,
+                estudiante.curso
+            ].some(valor => normalizar(valor).includes(busqueda))
+        );
+        ponerTexto(
+            "resumenListadoCompletoFaltas",
+            `${estudiantes.length} de ${state.resultados.porFaltas.length} estudiantes con faltas estimadas`
+        );
+        renderizarFilasFaltas("tablaListadoCompletoFaltas", estudiantes);
     }
 
     function renderizarTablasRanking() {
@@ -347,49 +519,39 @@
             return;
         }
 
-        renderizarTabla(
-            "tablaEstudiantesTarde",
-            "btnVerTodasTardanzas",
-            state.resultados.porTardanzas,
-            "tardanzas",
-            state.mostrarTodasTardanzas
-        );
-        renderizarTabla(
+        const boton = $("btnVerTodasFaltas");
+        if (boton) {
+            boton.disabled = state.resultados.porFaltas.length === 0;
+            boton.textContent = `Ver todos (${state.resultados.porFaltas.length})`;
+        }
+        renderizarFilasFaltas(
             "tablaEstudiantesFaltas",
-            "btnVerTodasFaltas",
-            state.resultados.porFaltas,
-            "faltas",
-            state.mostrarTodasFaltas
+            state.resultados.porFaltas.slice(0, 10)
         );
     }
 
-    function renderizarTabla(id, botonId, estudiantes, tipo, mostrarTodos) {
+    function renderizarFilasFaltas(id, estudiantes) {
         const tbody = $(id);
         if (!tbody) {
             return;
         }
 
-        const boton = $(botonId);
-        if (boton) {
-            boton.disabled = estudiantes.length <= 10;
-            boton.textContent = mostrarTodos ? "Ver Top 10" : `Ver todos (${estudiantes.length})`;
-            boton.setAttribute("aria-expanded", String(mostrarTodos));
-        }
-
         tbody.replaceChildren();
-        const visibles = mostrarTodos ? estudiantes : estudiantes.slice(0, 10);
-        if (!visibles.length) {
+        if (!estudiantes.length) {
             const fila = document.createElement("tr");
             const celda = document.createElement("td");
-            celda.colSpan = 4;
+            celda.colSpan = 3;
             celda.className = "student-report-empty";
-            celda.textContent = "No hay datos para este periodo.";
+            celda.textContent = id === "tablaListadoCompletoFaltas" && normalizar($("buscarTodasFaltas")?.value)
+                ? "No se encontraron estudiantes con ese criterio."
+                : "No hay estudiantes con faltas estimadas para este periodo.";
             fila.appendChild(celda);
             tbody.appendChild(fila);
             return;
         }
 
-        visibles.forEach(estudiante => {
+        const filas = document.createDocumentFragment();
+        estudiantes.forEach(estudiante => {
             const fila = document.createElement("tr");
             const nombre = document.createElement("td");
             nombre.className = "report-name";
@@ -402,18 +564,12 @@
 
             const indicador = document.createElement("td");
             indicador.className = "student-report-count";
-            indicador.textContent = tipo === "tardanzas"
-                ? `${estudiante.diasTarde} día(s)`
-                : String(estudiante.faltasEstimadas);
+            indicador.textContent = String(estudiante.faltasEstimadas);
             fila.appendChild(indicador);
 
-            const detalle = document.createElement("td");
-            detalle.textContent = tipo === "tardanzas"
-                ? String(estudiante.llegadasTarde)
-                : String(estudiante.diasAsistencia);
-            fila.appendChild(detalle);
-            tbody.appendChild(fila);
+            filas.appendChild(fila);
         });
+        tbody.appendChild(filas);
     }
 
     function renderizarGraficas(estudiantes) {
@@ -670,10 +826,24 @@
 
     function obtenerEtiquetaGrado(curso) {
         const valor = String(curso || "").trim();
+        if (/^preescolar(?:-|$)/i.test(valor)) {
+            return "Preescolar";
+        }
         const coincidencia = valor.match(/^\s*(?:grado\s*)?(\d{1,2})(?:\D|$)/i);
         return coincidencia
             ? `Grado ${coincidencia[1]}`
             : "Sin grado";
+    }
+
+    function compararCursos(primerCurso, segundoCurso) {
+        const comparar = window.PUNTUALIXSCAN?.utils?.compararCursos;
+        return typeof comparar === "function"
+            ? comparar(primerCurso, segundoCurso)
+            : String(primerCurso || "").localeCompare(
+                String(segundoCurso || ""),
+                "es",
+                { numeric: true, sensitivity: "base" }
+            );
     }
 
     function exportarReporteEstudiantes() {
@@ -688,7 +858,6 @@
 
         const filas = [...state.resultados.estudiantes]
             .sort((a, b) =>
-                b.diasTarde - a.diasTarde ||
                 b.faltasEstimadas - a.faltasEstimadas ||
                 compararNombres(a, b)
             )
@@ -696,15 +865,13 @@
                 Estudiante: estudiante.nombre || "Sin nombre",
                 Documento: estudiante.documento || "",
                 "Grado / curso": estudiante.curso,
-                "Días con tardanza": estudiante.diasTarde,
-                "Registros tarde": estudiante.llegadasTarde,
                 "Faltas estimadas": estudiante.faltasEstimadas,
                 "Días con asistencia": estudiante.diasAsistencia
             }));
         const hoja = XLSX.utils.json_to_sheet(filas);
         hoja["!cols"] = [
             { wch: 30 }, { wch: 18 }, { wch: 18 }, { wch: 18 },
-            { wch: 18 }, { wch: 18 }, { wch: 20 }
+            { wch: 20 }
         ];
         const libro = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(libro, hoja, "Reporte estudiantes");
@@ -712,31 +879,27 @@
     }
 
     function mostrarEstado(mensaje) {
-        ["btnVerTodasTardanzas", "btnVerTodasFaltas"].forEach(id => {
+        ["btnVerTodasFaltas"].forEach(id => {
             const boton = $(id);
             if (boton) {
                 boton.disabled = true;
             }
         });
 
-        ["tablaEstudiantesTarde", "tablaEstudiantesFaltas"].forEach(id => {
+        ["tablaEstudiantesFaltas", "tablaListadoCompletoFaltas"].forEach(id => {
             const tbody = $(id);
             if (!tbody) {
                 return;
             }
             const fila = document.createElement("tr");
             const celda = document.createElement("td");
-            celda.colSpan = 4;
+            celda.colSpan = 3;
             celda.className = "student-report-empty";
             celda.textContent = mensaje;
             fila.appendChild(celda);
             tbody.replaceChildren(fila);
         });
-    }
-
-    function limpiarGraficas() {
-        Object.values(state.charts).forEach(chart => chart?.destroy());
-        state.charts = {};
+        ponerTexto("resumenListadoCompletoFaltas", mensaje);
     }
 
     function mostrarError(error) {

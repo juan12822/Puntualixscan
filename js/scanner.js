@@ -619,12 +619,20 @@ async function buscarEstudiante(codigoQR) {
            el valor almacenado en codigoqr.
         */
 
+        const rolActual =
+            window.PUNTUALIXSCAN?.permisos?.rolUsuarioActual();
+
         const resultado =
-            await client
-                .from("estudiantes")
-                .select("*")
-                .eq("codigoqr", codigo)
-                .limit(1);
+            rolActual === "portero"
+                ? await client.rpc(
+                    "buscar_estudiante_para_portero",
+                    { codigo_qr: codigo }
+                )
+                : await client
+                    .from("estudiantes")
+                    .select("*")
+                    .eq("codigoqr", codigo)
+                    .limit(1);
 
         const data =
             resultado.data?.[0];
@@ -1104,6 +1112,29 @@ async function verificarDuplicado(
     fecha
 ) {
 
+    if (
+        window.PUNTUALIXSCAN?.permisos?.rolUsuarioActual() === "portero"
+    ) {
+        const resultado = await client.rpc(
+            "portero_tiene_asistencia_hoy",
+            {
+                estudiante_id_buscar: String(estudianteId),
+                ingreso_buscar: ingreso,
+                fecha_buscar: fecha
+            }
+        );
+
+        if (resultado.error) {
+            console.error(
+                "Error verificando duplicado:",
+                resultado.error
+            );
+            throw resultado.error;
+        }
+
+        return resultado.data === true;
+    }
+
     const resultado =
         await client
             .from("asistencia")
@@ -1423,14 +1454,19 @@ async function registrarAsistencia() {
            INSERTAR EN SUPABASE
         */
 
-        const resultado =
-            await client
+        const insercion =
+            client
                 .from("asistencia")
                 .insert([
                     registro
-                ])
-                .select()
-                .single();
+                ]);
+
+        const resultado =
+            window.PUNTUALIXSCAN?.permisos?.rolUsuarioActual() === "portero"
+                ? await insercion
+                : await insercion
+                    .select()
+                    .single();
 
         const data =
             resultado.data;
@@ -1967,7 +2003,81 @@ window.cerrarSesion =
    INICIALIZACION
    ============================================================ */
 
-function inicializarScanner() {
+async function verificarAccesoScanner() {
+
+    const client =
+        obtenerCliente();
+
+    const { data: authData, error: authError } =
+        await client.auth.getUser();
+
+    if (authError) {
+        throw authError;
+    }
+
+    if (!authData?.user?.id) {
+        window.location.replace("login.html?rol=portero");
+        return false;
+    }
+
+    const { data: perfil, error: perfilError } = await client
+        .from("usuarios")
+        .select("id, nombre, correo, rol, estado")
+        .eq("id", authData.user.id)
+        .maybeSingle();
+
+    if (perfilError) {
+        throw perfilError;
+    }
+
+    if (
+        !perfil ||
+        perfil.estado !== "aprobado" ||
+        !["administrador", "profesor", "portero"].includes(perfil.rol)
+    ) {
+        window.localStorage.removeItem("usuario");
+        await client.auth.signOut();
+        window.location.replace("login.html?rol=portero");
+        return false;
+    }
+
+    window.localStorage.setItem(
+        "usuario",
+        JSON.stringify({
+            id: perfil.id,
+            nombre: perfil.nombre,
+            correo: perfil.correo,
+            email: authData.user.email,
+            rol: perfil.rol,
+            tipo: perfil.rol
+        })
+    );
+
+    window.PUNTUALIXSCAN?.permisos?.aplicarPermisosDeVista();
+
+    return true;
+}
+
+
+async function inicializarScanner() {
+
+    try {
+        if (!(await verificarAccesoScanner())) {
+            return;
+        }
+    } catch (error) {
+        console.error("No se pudo comprobar el acceso al escáner:", error);
+        mostrarMensaje(
+            "No se pudo verificar tu sesión. Revisa tu conexión e inicia sesión nuevamente."
+        );
+        await alerta({
+            icon: "error",
+            title: "No se pudo verificar el acceso",
+            text: error?.message || "Inicia sesión nuevamente e inténtalo otra vez."
+        });
+        window.location.replace("login.html?rol=portero");
+        return;
+    }
 
     registrarEventos();
 
