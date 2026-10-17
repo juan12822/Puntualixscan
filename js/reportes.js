@@ -146,7 +146,10 @@ async function iniciarReportes() {
         configurarEventos();
 
 
-        await protegerPagina();
+        const permitido = await protegerPagina();
+        if (!permitido) {
+            return;
+        }
 
 
         await ocultarFiltrosEstudiante();
@@ -299,13 +302,7 @@ async function cargarPerfilEstudiante() {
     $("correoEditorPerfil").value = estudiante.correo || perfil?.correo || "";
     $("telefonoEditorPerfil").value = estudiante.telefono || perfil?.telefono || "";
 
-    const fotoSidebar = document.querySelector(".usuario img");
-    if (fotoSidebar) {
-        fotoSidebar.src = foto;
-        fotoSidebar.onerror = () => {
-            fotoSidebar.src = FOTO_DEFAULT;
-        };
-    }
+    window.PUNTUALIXSCAN?.perfil?.actualizarDesdePerfilEstudiante(foto);
 
     $("btnEditarPerfil")?.addEventListener("click", abrirEditorPerfil);
     $("btnElegirFotoPerfil")?.addEventListener("click", () => $("fotoPerfilInput")?.click());
@@ -444,10 +441,7 @@ async function guardarPerfilEstudiante(evento) {
         $("telefonoEditorPerfil").value = telefono;
         $("fotoPerfilEstudiante").src = estudiante.foto || FOTO_DEFAULT;
         $("fotoEditorPerfil").src = estudiante.foto || FOTO_DEFAULT;
-        const fotoSidebar = document.querySelector(".usuario img");
-        if (fotoSidebar) {
-            fotoSidebar.src = estudiante.foto || FOTO_DEFAULT;
-        }
+        window.PUNTUALIXSCAN?.perfil?.actualizarDesdePerfilEstudiante(estudiante.foto);
         cerrarEditorPerfil();
         notificarExito("Tu perfil fue actualizado.");
     } catch (error) {
@@ -470,85 +464,15 @@ async function guardarPerfilEstudiante(evento) {
 ========================================================= */
 
 async function protegerPagina() {
-
-    try {
-
-        if (
-            window.PUNTUALIXSCAN &&
-            typeof window.PUNTUALIXSCAN.protegerPagina === "function"
-        ) {
-
-            const permitido =
-                await window.PUNTUALIXSCAN.protegerPagina({
-                    redirectTo: "login.html"
-                });
-
-
-            if (
-                permitido === false
-            ) {
-
-                return false;
-
-            }
-
-
-            return true;
-
-        }
-
-
-        const client =
-            obtenerCliente();
-
-
-        const {
-            data,
-            error
-        } =
-            await client.auth.getSession();
-
-
-        if (error) {
-
-            throw error;
-
-        }
-
-
-        if (!data?.session) {
-
-            const usuario =
-                localStorage.getItem("usuario");
-
-
-            if (!usuario) {
-
-                window.location.replace(
-                    "login.html"
-                );
-
-                return false;
-
-            }
-
-        }
-
-
-        return true;
-
-
-    } catch (error) {
-
-        console.error(
-            "Error verificando sesión:",
-            error
-        );
-
-
-        throw error;
-
+    const proteger = window.PUNTUALIXSCAN?.protegerPagina;
+    if (typeof proteger !== "function") {
+        window.location.replace("login.html");
+        return false;
     }
+
+    return Boolean(
+        await proteger({ redirectTo: "login.html" })
+    );
 
 }
 

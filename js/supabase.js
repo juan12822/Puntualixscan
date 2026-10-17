@@ -1852,15 +1852,23 @@
        PERMISOS POR ROL
        ======================================================== */
 
+    let usuarioVerificado = null;
+    let verificacionUsuario = null;
+
+
     function normalizarRol(
         value
     ) {
 
-        return String(
+        const rol = String(
             value || ""
         )
             .trim()
             .toLowerCase();
+
+        return rol === "admin"
+            ? "administrador"
+            : rol;
     }
 
 
@@ -1879,45 +1887,12 @@
 
 
     function obtenerUsuarioActual() {
-
-        try {
-
-            const usuario =
-                safeJsonParse(
-                    storage.get(
-                        "usuario"
-                    ),
-                    null
-                );
-
-            if (usuario) {
-                return usuario;
-            }
-
-        } catch (_) {
-
-            // Ignorado.
-        }
-
-        return null;
+        return usuarioVerificado?.usuario || null;
     }
 
 
     function rolUsuarioActual() {
-
-        const usuario =
-            obtenerUsuarioActual();
-
-        const rol =
-            usuario?.rol ||
-            usuario?.tipo ||
-            usuario?.user_metadata?.rol ||
-            usuario?.user_metadata?.tipo ||
-            "";
-
-        return normalizarRol(
-            rol
-        );
+        return usuarioVerificado?.rol || "";
     }
 
 
@@ -1925,7 +1900,7 @@
         rol
     ) {
 
-        const base = [
+        const paginasAdministrativas = [
             "dashboard.html",
             "estudiantes.html",
             "scanner.html",
@@ -1941,16 +1916,17 @@
         }
 
         if (rol === "profesor") {
-            return base;
+            return paginasAdministrativas;
         }
 
         if (rol === "administrador") {
-            return base;
+            return paginasAdministrativas;
         }
 
         if (rol === "portero") {
             return [
-                "scanner.html"
+                "scanner.html",
+                "configuracion.html"
             ];
         }
 
@@ -1999,11 +1975,9 @@
         const rol =
             normalizarRol(
                 usuario.rol ||
-                usuario.tipo ||
-                usuario.user_metadata?.rol ||
-                usuario.user_metadata?.tipo ||
-                "Usuario"
-            );
+                    usuario.tipo ||
+                    "Usuario"
+                );
 
         const nombreFormateado =
             String(nombre).trim();
@@ -2038,78 +2012,31 @@
                     rolFormateado;
             }
         }
+
     }
 
 
     function aplicarPermisosDeVista() {
+        const paginasProtegidas = new Set([
+            "dashboard.html",
+            "estudiantes.html",
+            "scanner.html",
+            "reportes.html",
+            "credencial.html",
+            "configuracion.html"
+        ]);
 
-        actualizarSidebarUsuario();
-
-        const rol =
-            rolUsuarioActual();
-
-        if (!rol) {
+        if (!paginasProtegidas.has(paginaActual())) {
             return;
         }
 
-        const pagina =
-            paginaActual();
-
-        const permitido =
-            tienePermisoParaPagina(
-                pagina,
-                rol
+        protegerPagina().catch(error => {
+            logger.error(
+                "No se pudieron aplicar los permisos de navegación.",
+                error
             );
-
-        if (!permitido) {
-            global.location.replace(
-                rol === "portero"
-                    ? "scanner.html"
-                    : rol === "estudiante"
-                        ? "reportes.html"
-                        : "dashboard.html"
-            );
-            return;
-        }
-
-        document.querySelectorAll(
-            ".nav-link"
-        ).forEach(
-            link => {
-
-                if (
-                    link.classList.contains(
-                        "logout"
-                    )
-                ) {
-                    return;
-                }
-
-                const href =
-                    String(
-                        link.getAttribute(
-                            "href"
-                        ) || ""
-                    );
-
-                const nombreEnlace =
-                    href.split("?")[0]
-                        .split("#")[0]
-                        .split("/").pop()
-                        .toLowerCase();
-
-                if (
-                    nombreEnlace &&
-                    nombreEnlace.endsWith(".html") &&
-                    !tienePermisoParaPagina(
-                        nombreEnlace,
-                        rol
-                    )
-                ) {
-                    link.style.display = "none";
-                }
-            }
-        );
+            global.location.replace(CONFIG.loginUrl);
+        });
     }
 
 
@@ -2117,134 +2044,208 @@
        PROTEGER PÁGINA
        ======================================================== */
 
-    async function protegerPagina(
-        options = {}
-    ) {
-
-        let session =
-            null;
-
-
-        try {
-
-            session =
-                await auth.session();
-
-        } catch (error) {
-
-            logger.warn(
-
-                "No fue posible comprobar " +
-                "la sesión de Supabase.",
-
-                error
-            );
+    async function obtenerUsuarioAutorizado() {
+        if (verificacionUsuario) {
+            return verificacionUsuario;
         }
 
+        verificacionUsuario = (async () => {
+            const session = await auth.session();
+            if (!session?.user?.id) {
+                return null;
+            }
 
-        /*
-         * Compatibilidad con el sistema
-         * actual de login.
-         */
-
-        const legacyUser =
-            safeJsonParse(
-
-                storage.get(
-                    "usuario"
-                ),
-
-                null
-            );
-
-        const usuarioActual =
-            legacyUser ||
-            session?.user ||
-            null;
-
-        const rol =
-            normalizarRol(
-                usuarioActual?.rol ||
-                usuarioActual?.tipo ||
-                usuarioActual?.user_metadata?.rol ||
-                usuarioActual?.user_metadata?.tipo ||
-                ""
-            );
-
-        const pagina =
-            paginaActual();
-
-        if (
-            !rol ||
-            !tienePermisoParaPagina(
-                pagina,
-                rol
-            )
-        ) {
-
+            const authUser = await auth.user();
             if (
-                options.redirect !==
-                false
+                !authUser?.id ||
+                authUser.id !== session.user.id
             ) {
+                return null;
+            }
 
+            let resultado = await client
+                .from(TABLES.USUARIOS)
+                .select("id, nombre, correo, documento, rol, estado")
+                .eq("id", authUser.id)
+                .maybeSingle();
+
+            if (resultado.error) {
+                throw resultado.error;
+            }
+
+            if (!resultado.data && authUser.email) {
+                resultado = await client
+                    .from(TABLES.USUARIOS)
+                    .select("id, nombre, correo, documento, rol, estado")
+                    .eq("correo", authUser.email)
+                    .maybeSingle();
+            }
+
+            if (resultado.error) {
+                throw resultado.error;
+            }
+
+            const perfil = resultado.data;
+            const rol = normalizarRol(perfil?.rol);
+            if (
+                !perfil ||
+                String(perfil.estado || "").trim().toLowerCase() !== "aprobado" ||
+                !rol
+            ) {
+                return null;
+            }
+
+            const usuario = {
+                id: authUser.id,
+                nombre: perfil.nombre || authUser.email || "Usuario",
+                correo: perfil.correo || authUser.email || "",
+                email: authUser.email || perfil.correo || "",
+                documento: perfil.documento || "",
+                rol,
+                tipo: rol,
+                avatar_url: authUser.user_metadata?.avatar_url || ""
+            };
+
+            usuarioVerificado = {
+                usuario,
+                rol
+            };
+
+            try {
+                storage.set("usuario", JSON.stringify(usuario));
+            } catch (error) {
+                logger.warn(
+                    "No se pudo actualizar el perfil local después de verificarlo.",
+                    error
+                );
+            }
+            global.PUNTUALIXSCAN?.perfil?.sincronizarAvatarCuenta?.(
+                usuario.avatar_url
+            );
+
+            return usuarioVerificado;
+        })();
+
+        try {
+            return await verificacionUsuario;
+        } catch (error) {
+            verificacionUsuario = null;
+            usuarioVerificado = null;
+            throw error;
+        }
+    }
+
+
+    function aplicarMenuPorRol(rol) {
+        const permisos = new Set(paginasPermitidasPorRol(rol));
+        document.querySelectorAll(".nav-link").forEach(link => {
+            if (link.classList.contains("logout")) {
+                link.hidden = false;
+                return;
+            }
+
+            const destino = String(link.getAttribute("href") || "")
+                .split("?")[0]
+                .split("#")[0]
+                .split("/")
+                .pop()
+                .toLowerCase();
+            const permitido = permisos.has(destino);
+            link.hidden = !permitido;
+
+            const etiqueta = link.querySelector("span");
+            if (etiqueta && rol === "portero" && destino === "configuracion.html") {
+                etiqueta.textContent = "Mi perfil";
+            } else if (etiqueta && rol === "estudiante" && destino === "reportes.html") {
+                etiqueta.textContent = "Mi perfil, asistencia y QR";
+            }
+        });
+
+        if (rol === "estudiante") {
+            [
+                "btnVistaEstudiantes",
+                "vistaEstudiantes",
+                "dialogoEstudiantesGrafica",
+                "dialogoTodasFaltas"
+            ].forEach(id => document.getElementById(id)?.remove());
+        }
+
+        if (rol === "portero" && paginaActual() === "configuracion.html") {
+            const cuenta = document.getElementById("panelCuentaAdministrativa");
+            document.querySelectorAll(".config-panel").forEach(panel => {
+                panel.hidden = panel !== cuenta;
+            });
+            document.querySelectorAll(".config-column").forEach(columna => {
+                columna.hidden = !cuenta || !columna.contains(cuenta);
+            });
+
+            const titulo = document.querySelector(".config-header h1");
+            if (titulo) {
+                titulo.textContent = "Mi perfil";
+            }
+            const descripcion = document.querySelector(".config-header p");
+            if (descripcion) {
+                descripcion.textContent = "Actualiza la foto de perfil de tu cuenta.";
+            }
+            const tituloCuenta = cuenta?.querySelector(".config-panel-title h2");
+            if (tituloCuenta) {
+                tituloCuenta.textContent = "Mi perfil";
+            }
+            const avisoCuenta = cuenta?.querySelector(".config-alert span");
+            if (avisoCuenta) {
+                avisoCuenta.textContent = "Tu perfil está protegido por el sistema de autenticación institucional.";
+            }
+        }
+    }
+
+
+    async function protegerPagina(options = {}) {
+        const redirigir = options.redirect !== false;
+        const pagina = paginaActual();
+
+        try {
+            const identidad = await obtenerUsuarioAutorizado();
+            if (!identidad) {
+                if (redirigir) {
+                    global.location.replace(options.redirectTo || CONFIG.loginUrl);
+                }
+                return false;
+            }
+
+            const { usuario, rol } = identidad;
+            const permitido = tienePermisoParaPagina(pagina, rol);
+            if (permitido) {
+                actualizarSidebarUsuario();
+                aplicarMenuPorRol(rol);
+                document.documentElement.dataset.permissionsReady = "true";
+                if (pagina === "configuracion.html") {
+                    document.documentElement.dataset.configRole = rol;
+                }
+                return true;
+            }
+
+            if (redirigir) {
                 global.location.replace(
                     rol === "portero"
                         ? "scanner.html"
                         : rol === "estudiante"
                             ? "reportes.html"
-                            : "login.html"
+                            : rol === "administrador" || rol === "profesor"
+                                ? "dashboard.html"
+                                : options.redirectTo || CONFIG.loginUrl
                 );
             }
-
+            return false;
+        } catch (error) {
+            logger.error(
+                "No se pudo verificar la identidad y los permisos de la cuenta.",
+                error
+            );
+            if (redirigir) {
+                global.location.replace(options.redirectTo || CONFIG.loginUrl);
+            }
             return false;
         }
-
-
-        /*
-         * Si existe una sesión real de
-         * Supabase, permitimos el acceso.
-         */
-
-        if (
-            session
-        ) {
-
-            return true;
-        }
-
-
-        /*
-         * Mantenemos compatibilidad
-         * con tu sistema actual.
-         */
-
-        if (
-            legacyUser
-        ) {
-
-            return true;
-        }
-
-
-        /*
-         * Si no hay autenticación,
-         * redirigir solamente una vez.
-         */
-
-        if (
-            options.redirect !==
-            false
-        ) {
-
-            global.location.replace(
-
-                options.redirectTo ||
-                CONFIG.loginUrl
-            );
-        }
-
-
-        return false;
     }
 
 
@@ -2442,6 +2443,40 @@
 
     global.PUNTUALIXSCAN =
         namespace;
+
+    client.auth.onAuthStateChange((event, session) => {
+        if (event === "SIGNED_OUT") {
+            usuarioVerificado = null;
+            verificacionUsuario = null;
+            delete document.documentElement.dataset.permissionsReady;
+            if (paginaActual() && paginaActual() !== "login.html") {
+                global.location.replace(CONFIG.loginUrl);
+            }
+            return;
+        }
+
+        if (
+            event === "SIGNED_IN" &&
+            usuarioVerificado?.usuario?.id &&
+            usuarioVerificado.usuario.id !== session?.user?.id
+        ) {
+            usuarioVerificado = null;
+            verificacionUsuario = null;
+            delete document.documentElement.dataset.permissionsReady;
+            global.setTimeout(aplicarPermisosDeVista, 0);
+        }
+    });
+
+    global.addEventListener("pageshow", event => {
+        if (!event.persisted) {
+            return;
+        }
+
+        usuarioVerificado = null;
+        verificacionUsuario = null;
+        delete document.documentElement.dataset.permissionsReady;
+        aplicarPermisosDeVista();
+    });
 
 
     global.supabaseClient =

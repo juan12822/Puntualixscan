@@ -17,6 +17,9 @@
 
     <title>Configuración | Puntualixscan Enterprise</title>
 
+    <script>
+        document.documentElement.dataset.configRole = "cargando";
+    </script>
 
     <!-- FUENTE -->
 
@@ -140,6 +143,55 @@
             display: flex;
             flex-direction: column;
             gap: 18px;
+        }
+
+        .config-column[hidden],
+        .config-panel[hidden] {
+            display: none;
+        }
+
+        html[data-config-role="cargando"] .config-grid {
+            visibility: hidden;
+        }
+
+        html[data-config-role="profesor"] .config-column:first-child,
+        html[data-config-role="portero"] .config-column:first-child {
+            display: none;
+        }
+
+        html[data-config-role="profesor"] .config-column:last-child > .config-panel:not(#panelCuentaAdministrativa),
+        html[data-config-role="portero"] .config-column:last-child > .config-panel:not(#panelCuentaAdministrativa) {
+            display: none;
+        }
+
+        .profile-photo-settings {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .profile-photo-settings img {
+            width: 76px;
+            height: 76px;
+            flex: 0 0 auto;
+            border: 2px solid #e1e8f1;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .profile-photo-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .profile-photo-status,
+        .profile-photo-help {
+            margin: 8px 0 0;
+            color: #71809b;
+            font-size: 10px;
+            line-height: 1.5;
         }
 
 
@@ -748,6 +800,7 @@
 
     </style>
 
+    <script src="js/perfil.js"></script>
 </head>
 
 
@@ -784,7 +837,7 @@
 
             <img
                 src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='50' fill='%23eaf1ff'/%3E%3Ccircle cx='50' cy='36' r='19' fill='%23123b85'/%3E%3Cpath d='M18 88c3-23 16-34 32-34s29 11 32 34' fill='%23123b85'/%3E%3C/svg%3E"
-                alt="Administrador"
+                alt="Foto de perfil"
                 width="42"
                 height="42"
             >
@@ -792,11 +845,11 @@
             <div>
 
                 <h4 id="usuarioNombre">
-                    Administrador
+                    Usuario
                 </h4>
 
                 <p id="usuarioRol">
-                    Sistema activo
+                    Cuenta activa
                 </p>
 
             </div>
@@ -1387,7 +1440,7 @@
 
                     <!-- ADMINISTRADOR -->
 
-                    <section class="config-panel">
+                    <section id="panelCuentaAdministrativa" class="config-panel">
 
 
                         <div class="config-panel-header">
@@ -1407,7 +1460,7 @@
                                     </h2>
 
                                     <p>
-                                        Información de la sesión actual.
+                                        Información de tu sesión y foto de perfil.
                                     </p>
 
                                 </div>
@@ -1419,6 +1472,18 @@
 
                         <div class="config-panel-body">
 
+                            <div class="profile-photo-settings">
+                                <img id="vistaPreviaFotoPerfil" alt="Foto de perfil">
+                                <div>
+                                    <input id="archivoFotoPerfil" type="file" accept="image/jpeg,image/png,image/webp" hidden>
+                                    <div class="profile-photo-actions">
+                                        <button id="btnElegirFotoPerfil" class="config-btn config-btn-secondary" type="button">Elegir foto</button>
+                                        <button id="btnGuardarFotoPerfil" class="config-btn config-btn-primary" type="button" disabled>Guardar foto</button>
+                                    </div>
+                                    <p class="profile-photo-help">JPG, PNG o WebP. Máximo 5 MB; la imagen se optimiza antes de guardarse.</p>
+                                    <p id="estadoFotoPerfil" class="profile-photo-status" role="status" aria-live="polite"></p>
+                                </div>
+                            </div>
 
                             <div class="form-group">
 
@@ -1753,7 +1818,6 @@
 ====================================================== -->
 
 <script src="js/supabase.js"></script>
-
 <script src="js/configuracion.js"></script>
 
 

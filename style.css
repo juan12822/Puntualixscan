@@ -184,10 +184,10 @@ ol{
 }
 
 .brand img{
-    width:42px;
-    height:42px;
+    width:66px;
+    height:66px;
 
-    flex:0 0 42px;
+    flex:0 0 66px;
 
     object-fit:contain;
 }
@@ -223,8 +223,10 @@ ol{
 }
 
 .sidebar .usuario img{
+    display:block;
     width:42px;
     height:42px;
+    aspect-ratio:1;
 
     flex:0 0 42px;
 
@@ -259,6 +261,14 @@ ol{
     display:flex;
     flex-direction:column;
     gap:5px;
+}
+
+html:not([data-permissions-ready="true"]) .layout{
+    visibility:hidden;
+}
+
+.sidebar nav .nav-link[hidden]{
+    display:none !important;
 }
 
 .nav-link{
@@ -2119,8 +2129,9 @@ ol{
     }
 
     .brand img{
-        width:36px;
-        height:36px;
+        width:58px;
+        height:58px;
+        flex-basis:58px;
     }
 
     .cards{
@@ -2382,12 +2393,14 @@ textarea {
 
 .brand img {
 
-    width: 43px;
-    height: 43px;
+    width: 66px;
+    height: 66px;
 
     object-fit: contain;
 
-    flex-shrink: 0;
+    flex: 0 0 66px;
+
+    transform: scale(1.5);
 
 }
 
@@ -2404,6 +2417,46 @@ textarea {
 
     letter-spacing: -.4px;
 
+}
+
+@media(max-width:900px){
+
+    .sidebar{
+        width:82px;
+    }
+
+    .contenido,
+    .main{
+        width:calc(100% - 82px);
+        margin-left:82px;
+    }
+
+    .brand img{
+        width:60px;
+        height:60px;
+        flex-basis:60px;
+        transform:scale(1.5);
+    }
+}
+
+@media(max-width:430px){
+
+    .sidebar{
+        width:74px;
+    }
+
+    .contenido,
+    .main{
+        width:calc(100% - 74px);
+        margin-left:74px;
+    }
+
+    .brand img{
+        width:54px;
+        height:54px;
+        flex-basis:54px;
+        transform:scale(1.5);
+    }
 }
 
 
@@ -2436,8 +2489,10 @@ textarea {
 
 .usuario img {
 
+    display: block;
     width: 42px;
     height: 42px;
+    aspect-ratio: 1;
 
     flex-shrink: 0;
 

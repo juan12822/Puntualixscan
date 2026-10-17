@@ -22,7 +22,13 @@ Ejecuta `supabase-porteros.sql` en el SQL Editor de Supabase después de `supaba
 supabase functions deploy crear-portero --project-ref dejuztyypfxtejfjfmlp
 ```
 
-En Configuración, un administrador aprobado puede crear cada cuenta definiendo su contraseña. El sistema guarda el perfil y el código `PT-##########` en `usuarios`; el portero inicia sesión seleccionando “Portero” e ingresando ese código y la contraseña. Los porteros solo tienen acceso al escáner y solo pueden registrar llegadas (`Colegio` o `Media Técnica`, a tiempo o tarde). La contraseña nunca se guarda en una tabla ni se muestra de nuevo.
+La migración también agrega la función segura `resumen_asistencia_hoy`, usada por el escáner para actualizar los contadores de asistencias y llegadas tarde del día sin dar a los porteros acceso a los registros completos. Si ya instalaste la migración, vuelve a ejecutar `supabase-porteros.sql` para crear esta función.
+
+En Configuración, un administrador aprobado puede crear cada cuenta definiendo su contraseña. El sistema guarda el perfil y el código `PT-##########` en `usuarios`; el portero inicia sesión seleccionando “Portero” e ingresando ese código y la contraseña. Los porteros solo tienen acceso operativo al escáner y a la opción de actualizar su foto de perfil; solo pueden registrar llegadas (`Colegio` o `Media Técnica`, a tiempo o tarde). La contraseña nunca se guarda en una tabla ni se muestra de nuevo.
+
+## Navegación por rol
+
+Las páginas institucionales verifican la sesión activa de Supabase y el rol/estado aprobado del perfil asociado en `usuarios` antes de mostrar su contenido o menú. No se concede acceso a partir del rol guardado localmente ni de cuentas/contraseñas guardadas en el navegador. Los administradores y profesores conservan los módulos existentes; los porteros solo ven el escáner y su perfil; los estudiantes solo ven su asistencia, perfil y QR personal desde Reportes. La edición del perfil del portero se presenta como “Mi perfil” y no muestra los controles de configuración institucional. Estas comprobaciones de interfaz complementan, pero no reemplazan, la autenticación y las políticas RLS de Supabase.
 
 ## Seguimiento de profesores conectados
 

@@ -489,7 +489,12 @@
             rol:
                 source.rol ||
                 metadata.rol ||
-                "Usuario"
+                "Usuario",
+
+            avatar_url:
+                metadata.avatar_url ||
+                source.avatar_url ||
+                ""
         };
     }
 
@@ -559,14 +564,7 @@
                 error
             );
 
-
-            /*
-             * El login de Supabase sigue siendo
-             * válido aunque el perfil complementario
-             * no esté disponible.
-             */
-
-            return null;
+            throw error;
         }
     }
 
@@ -904,11 +902,14 @@
             true;
 
 
-        global.location.replace(
-            normalizeRole(role) === "portero"
-                ? "scanner.html"
-                : CONFIG.dashboard
-        );
+        const normalizedRole = normalizeRole(role);
+        const destino = normalizedRole === "portero"
+            ? "scanner.html"
+            : normalizedRole === "estudiante"
+                ? "reportes.html"
+                : CONFIG.dashboard;
+
+        global.location.replace(destino);
     }
 
 
@@ -974,27 +975,6 @@
     }
 
 
-    /* ========================================================
-       LOGIN LOCAL (USUARIOS REGISTRADOS)
-       ======================================================== */
-
-    function getRegisteredUsers() {
-
-        try {
-
-            return JSON.parse(
-                global.localStorage.getItem(
-                    "usuariosPuntualixscan"
-                ) || "[]"
-            );
-
-        } catch (_) {
-
-            return [];
-        }
-    }
-
-
     function getSelectedRole() {
 
         const value =
@@ -1032,83 +1012,6 @@
 
         return normalizeRole(actualRole) ===
             normalizeRole(expectedRole);
-    }
-
-
-    function tryLocalLogin(
-        email,
-        password
-    ) {
-
-        const selectedRole =
-            getSelectedRole();
-
-        if (selectedRole === "portero") {
-            return null;
-        }
-
-        const usuarios =
-            getRegisteredUsers();
-
-        const usuarioLocal =
-            usuarios.find(
-                usuario => {
-
-                    const correo =
-                        String(
-                            usuario?.correo || ""
-                        )
-                            .trim()
-                            .toLowerCase();
-
-                    const clave =
-                        String(
-                            usuario?.clave || ""
-                        );
-
-
-                    const tipo =
-                        usuario?.tipo ||
-                        usuario?.rol ||
-                        "estudiante";
-
-                    return (
-                        correo === email &&
-                        clave === password &&
-                        usuario?.estado === "aprobado" &&
-                        roleMatches(
-                            tipo,
-                            selectedRole
-                        )
-                    );
-                }
-            );
-
-        if (!usuarioLocal) {
-            return null;
-        }
-
-        const sessionUser = {
-            id: usuarioLocal.id || email,
-            nombre: usuarioLocal.nombre || usuarioLocal.correo || "Usuario",
-            correo: usuarioLocal.correo || email,
-            email: usuarioLocal.correo || email,
-            documento: usuarioLocal.documento || "",
-            rol: usuarioLocal.tipo || usuarioLocal.rol || selectedRole,
-            tipo: usuarioLocal.tipo || usuarioLocal.rol || selectedRole
-        };
-
-        global.localStorage.setItem(
-            CONFIG.userKey,
-            JSON.stringify(sessionUser)
-        );
-
-        global.localStorage.setItem(
-            CONFIG.rememberKey,
-            String(Boolean(elements?.remember?.checked))
-        );
-
-        return sessionUser;
     }
 
 
@@ -1204,39 +1107,6 @@
             }
 
 
-            return;
-        }
-
-
-        const localUser =
-            tryLocalLogin(
-                email,
-                password
-            );
-
-        if (
-            localUser
-        ) {
-
-            await notify({
-
-                icon:
-                    "success",
-
-                title:
-                    "Acceso concedido",
-
-                text:
-                    `Bienvenido ${localUser.nombre}.`,
-
-                timer:
-                    900,
-
-                showConfirmButton:
-                    false
-            });
-
-            redirectToDashboard(localUser.rol);
             return;
         }
 

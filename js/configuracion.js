@@ -74,42 +74,94 @@ const Configuracion = (() => {
 
     async function iniciar() {
 
-
-        if (
-            inicializado
-        ) {
-
+        if (inicializado) {
             return;
-
         }
 
+        const permisos = window.PUNTUALIXSCAN?.protegerPagina;
+        if (typeof permisos !== "function") {
+            console.error("No está disponible la verificación de permisos para Configuración.");
+            return;
+        }
 
-        inicializado =
-            true;
+        const permitido = await permisos({ redirectTo: "login.html" });
+        if (!permitido) {
+            return;
+        }
 
+        const rol = obtenerRolConfiguracion();
+        if (!rol) {
+            window.location.replace("login.html");
+            return;
+        }
 
+        inicializado = true;
+        document.documentElement.dataset.configRole = rol;
         cargarConfiguracion();
-
-
         configurarEventos();
 
+        if (rol !== "administrador") {
+            mostrarSoloCuenta();
+        }
 
         await cargarUsuario();
 
-
-        await comprobarSistema();
-
-
-        await cargarSolicitudes();
-
-        await iniciarGestionPorteros();
-
-        await iniciarMonitoreoProfesores();
-
+        if (rol === "administrador") {
+            await comprobarSistema();
+            await cargarSolicitudes();
+            await iniciarGestionPorteros();
+            await iniciarMonitoreoProfesores();
+        }
 
         actualizarInterfaz();
 
 
+    }
+
+
+    function obtenerRolConfiguracion() {
+        const rolAplicacion =
+            window.PUNTUALIXSCAN?.permisos?.rolUsuarioActual();
+
+        return String(rolAplicacion || "").trim().toLowerCase();
+    }
+
+
+    function mostrarSoloCuenta() {
+        const cuenta = $("panelCuentaAdministrativa");
+        if (!cuenta) {
+            console.error("No se encontró el panel de cuenta administrativa.");
+            return;
+        }
+
+        const rol = obtenerRolConfiguracion() || "desconocido";
+        document.documentElement.dataset.configRole = rol;
+        const titulo = document.querySelector(".config-header h1");
+        if (titulo && rol === "portero") {
+            titulo.textContent = "Mi perfil";
+        }
+        const tituloCuenta = cuenta.querySelector(".config-panel-title h2");
+        if (tituloCuenta && rol === "portero") {
+            tituloCuenta.textContent = "Mi perfil";
+        }
+        const avisoCuenta = cuenta.querySelector(".config-alert span");
+        if (avisoCuenta && rol === "portero") {
+            avisoCuenta.textContent = "Tu perfil está protegido por el sistema de autenticación institucional.";
+        }
+        document.querySelectorAll(".config-panel").forEach(panel => {
+            panel.hidden = panel !== cuenta;
+        });
+        document.querySelectorAll(".config-column").forEach(columna => {
+            columna.hidden = !columna.contains(cuenta);
+        });
+        const grid = document.querySelector(".config-grid");
+        if (grid) {
+            grid.style.gridTemplateColumns = "minmax(0, 1fr)";
+        }
+        const descripcion = document.querySelector(".config-header p");
+        if (descripcion) {
+            descripcion.textContent = "Actualiza la foto de perfil de tu cuenta.";
+        }
     }
 
 
@@ -597,147 +649,103 @@ const Configuracion = (() => {
 
     async function cargarUsuario() {
 
-
         const correo =
             $("correoAdministrador");
 
-
         if (!correo) {
-
             return;
-
         }
 
+        let usuarioLocal = null;
+        try {
+            usuarioLocal = JSON.parse(localStorage.getItem("usuario") || "null");
+        } catch (error) {
+            console.warn("No se pudo leer el usuario de la sesión local:", error);
+        }
+
+        if (usuarioLocal) {
+            correo.value =
+                usuarioLocal.email ||
+                usuarioLocal.correo ||
+                "Sesión institucional";
+            ponerTexto(
+                "usuarioNombre",
+                usuarioLocal.nombre || usuarioLocal.name || "Usuario"
+            );
+            ponerTexto(
+                "usuarioRol",
+                usuarioLocal.rol || usuarioLocal.tipo || "Cuenta activa"
+            );
+        } else {
+            correo.value = "Sesión institucional";
+            ponerTexto("usuarioNombre", "Usuario");
+            ponerTexto("usuarioRol", "Cuenta activa");
+        }
+
+        const client = window.PUNTUALIXSCAN?.client;
+        if (!client) {
+            return;
+        }
 
         try {
+            const { data, error } = await client.auth.getUser();
+            if (error) throw error;
+            const authUser = data?.user;
+            if (!authUser) return;
 
-
-            let usuario =
-                null;
-
-
-            /* -----------------------------------------
-               SESIÓN SUPABASE
-            ----------------------------------------- */
-
-            if (
-                window.PUNTUALIXSCAN?.client
-            ) {
-
-
-                const {
-                    data
-                } =
-                    await window.PUNTUALIXSCAN.client.auth.getUser();
-
-
-                if (
-                    data?.user
-                ) {
-
-                    usuario =
-                        data.user;
-
-                }
-
+            let perfil = null;
+            if (authUser.id && !usuarioLocal?.rol && !usuarioLocal?.tipo) {
+                const { data: perfilData, error: perfilError } = await client
+                    .from("usuarios")
+                    .select("id,nombre,correo,rol,estado")
+                    .eq("id", authUser.id)
+                    .maybeSingle();
+                if (perfilError) throw perfilError;
+                perfil = perfilData;
             }
-
-
-            /* -----------------------------------------
-               RESPALDO LOCAL
-            ----------------------------------------- */
-
-            if (
-                !usuario
-            ) {
-
-
-                const local =
-                    localStorage.getItem(
-                        "usuario"
-                    );
-
-
-                if (
-                    local
-                ) {
-
-                    try {
-
-                        usuario =
-                            JSON.parse(
-                                local
-                            );
-
-                    } catch {
-
-                        usuario =
-                            null;
-
-                    }
-
-                }
-
-            }
-
-
-            if (
-                usuario
-            ) {
-
-
-                correo.value =
-                    usuario.email ||
-                    usuario.correo ||
-                    "Administrador";
-
-
-                const nombre =
-                    usuario.nombre ||
-                    usuario.name ||
-                    "Administrador";
-
-
-                const rol =
-                    usuario.rol ||
-                    "Administrador";
-
-
-                ponerTexto(
-                    "usuarioNombre",
-                    nombre
-                );
-
-
-                ponerTexto(
-                    "usuarioRol",
-                    rol
-                );
-
-            } else {
-
-
-                correo.value =
-                    "Sesión institucional";
-
-
-            }
-
-
-        } catch (error) {
-
-
-            console.warn(
-                "No se pudo obtener el usuario:",
-                error
-            );
-
 
             correo.value =
-                "Administrador";
+                authUser.email ||
+                perfil?.correo ||
+                usuarioLocal?.correo ||
+                "Sesión institucional";
+            const nombre =
+                usuarioLocal?.nombre ||
+                perfil?.nombre ||
+                authUser.user_metadata?.nombre;
+            const rol =
+                usuarioLocal?.rol ||
+                usuarioLocal?.tipo ||
+                perfil?.rol ||
+                authUser.user_metadata?.rol ||
+                authUser.user_metadata?.tipo;
 
+            if (nombre) {
+                ponerTexto("usuarioNombre", nombre);
+            }
+            if (rol) {
+                ponerTexto("usuarioRol", rol);
+                const rolNormalizado = String(rol).trim().toLowerCase();
+                document.documentElement.dataset.configRole =
+                    rolNormalizado === "admin" ? "administrador" : rolNormalizado;
+                try {
+                    localStorage.setItem("usuario", JSON.stringify({
+                        ...(usuarioLocal || {}),
+                        id: authUser.id,
+                        nombre: nombre || usuarioLocal?.nombre || "",
+                        correo: perfil?.correo || usuarioLocal?.correo || authUser.email || "",
+                        email: authUser.email || usuarioLocal?.email || "",
+                        rol,
+                        tipo: rol,
+                        avatar_url: authUser.user_metadata?.avatar_url || usuarioLocal?.avatar_url || ""
+                    }));
+                } catch (storageError) {
+                    console.warn("No se pudo actualizar el perfil de la sesión local:", storageError);
+                }
+            }
+        } catch (error) {
+            console.warn("No se pudo actualizar el correo de la sesión:", error);
         }
-
     }
 
 

@@ -56,6 +56,10 @@ const btnTiempo = $("btnTiempo");
 const btnTarde = $("btnTarde");
 
 const btnCerrarSesion = $("btnCerrarSesion");
+const totalHoy = $("totalHoy");
+const totalTarde = $("totalTarde");
+
+let intervaloResumenAsistencia = null;
 
 
 /* ============================================================
@@ -1502,6 +1506,12 @@ async function registrarAsistencia() {
             throw error;
         }
 
+        try {
+            await actualizarResumenAsistencia();
+        } catch (resumenError) {
+            console.error("La asistencia se guardó, pero no se pudo actualizar el resumen:", resumenError);
+        }
+
         /*
            VERIFICACIÓN CRÍTICA
 
@@ -1682,6 +1692,29 @@ async function registrarAsistencia() {
 }
 
 
+async function actualizarResumenAsistencia() {
+    const client = obtenerCliente();
+    const { data, error } = await client.rpc("resumen_asistencia_hoy");
+
+    if (error) {
+        console.error("No se pudo actualizar el resumen de asistencia:", error);
+        throw error;
+    }
+
+    const resumen = Array.isArray(data) ? data[0] : data;
+    if (!resumen) {
+        throw new Error("Supabase no devolvió el resumen de asistencia de hoy.");
+    }
+
+    if (totalHoy) {
+        totalHoy.textContent = String(resumen.asistencias_hoy ?? 0);
+    }
+    if (totalTarde) {
+        totalTarde.textContent = String(resumen.llegadas_tarde ?? 0);
+    }
+}
+
+
 /* ============================================================
    LIMPIAR SCANNER
    ============================================================ */
@@ -1847,6 +1880,18 @@ function registrarEventos() {
         );
     }
 
+    const btnActualizar = $("btnActualizar");
+    if (btnActualizar) {
+        btnActualizar.addEventListener("click", async () => {
+            try {
+                await actualizarResumenAsistencia();
+                mostrarMensaje("Resumen de asistencia actualizado.");
+            } catch (error) {
+                mostrarMensaje("No se pudo actualizar el resumen de asistencias.");
+            }
+        });
+    }
+
     if (codigoManual) {
 
         codigoManual.addEventListener(
@@ -2004,58 +2049,14 @@ window.cerrarSesion =
    ============================================================ */
 
 async function verificarAccesoScanner() {
-
-    const client =
-        obtenerCliente();
-
-    const { data: authData, error: authError } =
-        await client.auth.getUser();
-
-    if (authError) {
-        throw authError;
+    const proteger = window.PUNTUALIXSCAN?.protegerPagina;
+    if (typeof proteger !== "function") {
+        throw new Error("No está disponible la verificación de permisos del sistema.");
     }
 
-    if (!authData?.user?.id) {
-        window.location.replace("login.html?rol=portero");
-        return false;
-    }
-
-    const { data: perfil, error: perfilError } = await client
-        .from("usuarios")
-        .select("id, nombre, correo, rol, estado")
-        .eq("id", authData.user.id)
-        .maybeSingle();
-
-    if (perfilError) {
-        throw perfilError;
-    }
-
-    if (
-        !perfil ||
-        perfil.estado !== "aprobado" ||
-        !["administrador", "profesor", "portero"].includes(perfil.rol)
-    ) {
-        window.localStorage.removeItem("usuario");
-        await client.auth.signOut();
-        window.location.replace("login.html?rol=portero");
-        return false;
-    }
-
-    window.localStorage.setItem(
-        "usuario",
-        JSON.stringify({
-            id: perfil.id,
-            nombre: perfil.nombre,
-            correo: perfil.correo,
-            email: authData.user.email,
-            rol: perfil.rol,
-            tipo: perfil.rol
-        })
+    return Boolean(
+        await proteger({ redirectTo: "login.html?rol=portero" })
     );
-
-    window.PUNTUALIXSCAN?.permisos?.aplicarPermisosDeVista();
-
-    return true;
 }
 
 
@@ -2080,6 +2081,23 @@ async function inicializarScanner() {
     }
 
     registrarEventos();
+
+    try {
+        await actualizarResumenAsistencia();
+    } catch (error) {
+        mostrarMensaje("No se pudo cargar el resumen de asistencias. Intenta actualizar.");
+    }
+
+    if (intervaloResumenAsistencia) {
+        clearInterval(intervaloResumenAsistencia);
+    }
+    intervaloResumenAsistencia = window.setInterval(() => {
+        if (document.visibilityState === "visible") {
+            actualizarResumenAsistencia().catch(error => {
+                console.error("No se pudo sincronizar el resumen de asistencia:", error);
+            });
+        }
+    }, 30000);
 
     if (btnDetener) {
         btnDetener.disabled = true;

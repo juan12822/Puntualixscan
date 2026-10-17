@@ -184,87 +184,16 @@ async function iniciar() {
 ========================================================= */
 
 async function protegerPagina() {
-
-
-    try {
-
-
-        if (
-            window.PUNTUALIXSCAN &&
-            typeof window.PUNTUALIXSCAN.protegerPagina ===
-                "function"
-        ) {
-
-            const resultado =
-                await window.PUNTUALIXSCAN.protegerPagina({
-
-                    redirectTo:
-                        "login.html"
-
-                });
-
-
-            return resultado !== false;
-
-        }
-
-
-        const client =
-            obtenerCliente();
-
-
-        const {
-            data,
-            error
-        } =
-            await client.auth.getSession();
-
-
-        if (error) {
-
-            throw error;
-
-        }
-
-
-        if (
-            !data?.session
-        ) {
-
-            const usuario =
-                localStorage.getItem(
-                    "usuario"
-                );
-
-
-            if (!usuario) {
-
-                window.location.replace(
-                    "login.html"
-                );
-
-
-                return false;
-
-            }
-
-        }
-
-
-        return true;
-
-
-    } catch (error) {
-
+    const proteger = window.PUNTUALIXSCAN?.protegerPagina;
+    if (typeof proteger !== "function") {
         console.error(
-            "Error verificando sesión:",
-            error
+            "No está disponible la verificación de permisos para Credenciales."
         );
-
-
-        return true;
-
+        window.location.replace("login.html");
+        return false;
     }
+
+    return Boolean(await proteger({ redirectTo: "login.html" }));
 
 }
 
@@ -703,7 +632,8 @@ function obtenerEstudianteGuardado() {
 
 
         if (
-            !valor
+            !valor ||
+            ["imagenes/usuario.png", "imagenes/usuario.svg"].includes(valor)
         ) {
 
             return null;
@@ -993,359 +923,238 @@ function imprimirCredencial() {
    PDF
 ========================================================= */
 
-function descargarPDF() {
-
-
-    if (
-        !state.estudiante
-    ) {
-
-        notificar(
-            "Primero selecciona un estudiante.",
-            "info"
-        );
-
-
+async function descargarPDF() {
+    if (!state.estudiante) {
+        notificar("Primero selecciona un estudiante.", "info");
         return;
-
     }
 
-
-    if (
-        !window.jspdf?.jsPDF
-    ) {
-
-        notificar(
-            "No se pudo cargar el generador de PDF.",
-            "error"
-        );
-
-
+    if (!window.jspdf?.jsPDF) {
+        notificar("No se pudo cargar el generador de PDF.", "error");
         return;
-
     }
-
 
     try {
-
-
-        const {
-            jsPDF
-        } =
-            window.jspdf;
-
-
-        const estudiante =
-            state.estudiante;
-
-
-        const pdf =
-            new jsPDF({
-
-                orientation:
-                    "landscape",
-
-                unit:
-                    "mm",
-
-                format:
-                    "a4"
-
-            });
-
-
-        /* ---------------------------------------------
-           FONDO
-        --------------------------------------------- */
-
-        pdf.setFillColor(
-            244,
-            247,
-            251
-        );
-
-
-        pdf.rect(
-            0,
-            0,
-            297,
-            210,
-            "F"
-        );
-
-
-        /* ---------------------------------------------
-           TARJETA
-        --------------------------------------------- */
-
-        pdf.setFillColor(
-            255,
-            255,
-            255
-        );
-
-
-        pdf.roundedRect(
-            28,
-            42,
-            241,
-            126,
-            8,
-            8,
-            "F"
-        );
-
-
-        /* ---------------------------------------------
-           CABECERA
-        --------------------------------------------- */
-
-        pdf.setFillColor(
-            18,
-            59,
-            133
-        );
-
-
-        pdf.roundedRect(
-            28,
-            42,
-            241,
-            35,
-            8,
-            8,
-            "F"
-        );
-
-
-        pdf.rect(
-            28,
-            60,
-            241,
-            17,
-            "F"
-        );
-
-
-        pdf.setTextColor(
-            255,
-            255,
-            255
-        );
-
-
-        pdf.setFontSize(
-            13
-        );
-
-
-        pdf.text(
-            "Puntualixscan Enterprise",
-            40,
-            56
-        );
-
-
-        pdf.setFontSize(
-            7
-        );
-
-
-        pdf.text(
-            "Institución Educativa Maestro Arenas Betancur",
-            40,
-            67
-        );
-
-
-        /* ---------------------------------------------
-           DATOS
-        --------------------------------------------- */
-
-        pdf.setTextColor(
-            23,
-            32,
-            51
-        );
-
-
-        pdf.setFontSize(
-            15
-        );
-
-
-        pdf.text(
-            String(
-                estudiante.nombre ||
-                "Estudiante"
-            ).slice(
-                0,
-                42
-            ),
-            43,
-            94
-        );
-
-
-        pdf.setFontSize(
-            8
-        );
-
-
-        pdf.setTextColor(
-            113,
-            128,
-            150
-        );
-
-
-        pdf.text(
-            "CREDENCIAL ESTUDIANTIL",
-            43,
-            102
-        );
-
-
-        pdf.setTextColor(
-            23,
-            32,
-            51
-        );
-
-
-        pdf.setFontSize(
-            8
-        );
-
-
-        pdf.text(
-            `Documento: ${
-                estudiante.documento ||
-                "—"
-            }`,
-            43,
-            116
-        );
-
-
-        pdf.text(
-            `Curso: ${
-                estudiante.curso ||
-                "—"
-            }`,
-            43,
-            126
-        );
-
-
-        pdf.text(
-            `Año lectivo: ${
-                new Date().getFullYear()
-            }`,
-            43,
-            136
-        );
-
-
-        pdf.text(
-            "Estado: Activo",
-            43,
-            146
-        );
-
-
-        /* ---------------------------------------------
-           CÓDIGO
-        --------------------------------------------- */
-
-        pdf.setTextColor(
-            113,
-            128,
-            150
-        );
-
-
-        pdf.setFontSize(
-            6
-        );
-
-
-        pdf.text(
-            "CÓDIGO DE IDENTIFICACIÓN",
-            185,
-            94
-        );
-
-
-        pdf.setTextColor(
-            18,
-            59,
-            133
-        );
-
-
-        pdf.setFontSize(
-            8
-        );
-
-
-        pdf.text(
-            String(
-                estudiante.codigoqr ||
-                estudiante.documento ||
-                "PUNTUALIXSCAN"
-            ).slice(
-                0,
-                25
-            ),
-            185,
-            102
-        );
-
-
-        pdf.setTextColor(
-            113,
-            128,
-            150
-        );
-
-
-        pdf.setFontSize(
-            6
-        );
-
-
-        pdf.text(
-            "Código QR disponible en la credencial digital.",
-            185,
-            113
-        );
-
-
-        pdf.save(
-            `credencial-${limpiarNombre(
-                estudiante.documento ||
-                "estudiante"
-            )}.pdf`
-        );
-
-
+        const estudiante = state.estudiante;
+        const codigo =
+            estudiante.codigoqr ||
+            estudiante.documento ||
+            "PUNTUALIXSCAN";
+        const imagenQR = obtenerImagenQRParaPDF();
+
+        const [fotoResult, logoResult] = await Promise.allSettled([
+            cargarImagenParaPDF(obtenerFotoSegura(estudiante.foto), 420, 500, true),
+            cargarImagenParaPDF("imagenes/logo.png", 180, 180, false)
+        ]);
+
+        let foto = FOTO_DEFAULT;
+        if (fotoResult.status === "fulfilled") {
+            foto = fotoResult.value;
+        } else {
+            console.warn("No se pudo cargar la foto del estudiante para el PDF; se usará el avatar predeterminado.", fotoResult.reason);
+            foto = await cargarImagenParaPDF(FOTO_DEFAULT, 420, 500, true);
+        }
+
+        const logo = logoResult.status === "fulfilled"
+            ? logoResult.value
+            : null;
+        if (!logo) {
+            console.warn("No se pudo cargar el logo institucional para el PDF.", logoResult.reason);
+        }
+
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({
+            orientation: "landscape",
+            unit: "mm",
+            format: "a4"
+        });
+
+        const pageWidth = 297;
+        const pageHeight = 210;
+        const card = { x: 20, y: 24, width: 257, height: 162 };
+
+        pdf.setFillColor(241, 246, 253);
+        pdf.rect(0, 0, pageWidth, pageHeight, "F");
+
+        pdf.setFillColor(255, 255, 255);
+        pdf.roundedRect(card.x, card.y, card.width, card.height, 7, 7, "F");
+        pdf.setDrawColor(220, 230, 243);
+        pdf.setLineWidth(0.6);
+        pdf.roundedRect(card.x, card.y, card.width, card.height, 7, 7, "S");
+
+        pdf.setFillColor(18, 59, 133);
+        pdf.roundedRect(card.x, card.y, card.width, 39, 7, 7, "F");
+        pdf.rect(card.x, card.y + 22, card.width, 17, "F");
+        pdf.setFillColor(121, 237, 199);
+        pdf.roundedRect(card.x, card.y + 37, card.width, 2, 1, 1, "F");
+
+        if (logo) {
+            pdf.setFillColor(255, 255, 255);
+            pdf.roundedRect(30, 30, 35, 35, 5, 5, "F");
+            pdf.addImage(logo, "JPEG", 32, 32, 31, 31, undefined, "FAST");
+        }
+
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(7);
+        pdf.text("INSTITUCIÓN EDUCATIVA", 70, 35);
+        pdf.setFontSize(14);
+        pdf.text("Maestro Arenas Betancur", 70, 43);
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(8);
+        pdf.setTextColor(222, 234, 255);
+        pdf.text("Puntualixscan · Control de asistencia", 70, 51);
+
+        pdf.setFillColor(255, 255, 255);
+        pdf.roundedRect(225, 33, 39, 12, 6, 6, "F");
+        pdf.setTextColor(18, 59, 133);
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(6.5);
+        pdf.text("CREDENCIAL ESTUDIANTIL", 244.5, 40.5, { align: "center" });
+
+        pdf.setFillColor(236, 243, 252);
+        pdf.roundedRect(31, 70, 49, 66, 4, 4, "F");
+        pdf.addImage(foto, "JPEG", 33, 72, 45, 62, undefined, "FAST");
+
+        const nombre = String(estudiante.nombre || "Estudiante").trim();
+        pdf.setTextColor(18, 59, 133);
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(7);
+        pdf.text("NOMBRE DEL ESTUDIANTE", 90, 77);
+
+        pdf.setTextColor(23, 32, 51);
+        pdf.setFontSize(17);
+        const nombreLineas = pdf.splitTextToSize(nombre, 112).slice(0, 2);
+        pdf.text(nombreLineas, 90, 86, { lineHeightFactor: 1.12 });
+
+        const filaDatosY = nombreLineas.length > 1 ? 105 : 100;
+        const tarjetas = [
+            { x: 90, width: 49, label: "GRADO / CURSO", value: estudiante.curso || "Sin asignar" },
+            { x: 144, width: 43, label: "AÑO LECTIVO", value: String(new Date().getFullYear()) },
+            { x: 192, width: 25, label: "ESTADO", value: "Activo" }
+        ];
+
+        tarjetas.forEach((tarjeta, index) => {
+            const background = index === 2 ? [233, 248, 242] : [246, 249, 253];
+            pdf.setFillColor(...background);
+            pdf.roundedRect(tarjeta.x, filaDatosY, tarjeta.width, 25, 3, 3, "F");
+            pdf.setTextColor(113, 128, 150);
+            pdf.setFont("helvetica", "bold");
+            pdf.setFontSize(5.5);
+            pdf.text(tarjeta.label, tarjeta.x + 3, filaDatosY + 7);
+            pdf.setTextColor(index === 2 ? 21 : 23, index === 2 ? 149 : 32, index === 2 ? 112 : 51);
+            pdf.setFontSize(8);
+            pdf.setFont("helvetica", "bold");
+            const valueLines = pdf.splitTextToSize(String(tarjeta.value), tarjeta.width - 6).slice(0, 2);
+            pdf.text(valueLines, tarjeta.x + 3, filaDatosY + 16, { lineHeightFactor: 1.1 });
+        });
+
+        pdf.setDrawColor(220, 230, 243);
+        pdf.setLineWidth(0.4);
+        pdf.line(31, 145, 266, 145);
+        pdf.setTextColor(113, 128, 150);
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(6);
+        pdf.text("DOCUMENTO DE IDENTIDAD", 33, 154);
+        pdf.setTextColor(18, 59, 133);
+        pdf.setFontSize(10);
+        pdf.text(String(estudiante.documento || "No registrado"), 33, 164);
+
+        pdf.setTextColor(113, 128, 150);
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(6);
+        pdf.text("Código de identificación", 112, 154);
+        pdf.setTextColor(18, 59, 133);
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(8);
+        pdf.text(pdf.splitTextToSize(String(codigo), 72).slice(0, 1), 112, 164);
+
+        pdf.setFillColor(255, 255, 255);
+        pdf.roundedRect(223, 69, 42, 61, 4, 4, "F");
+        pdf.setDrawColor(220, 230, 243);
+        pdf.roundedRect(223, 69, 42, 61, 4, 4, "S");
+        pdf.addImage(imagenQR, "PNG", 226, 72, 36, 36, undefined, "NONE");
+        pdf.setTextColor(18, 59, 133);
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(6);
+        pdf.text("ESCANEA PARA IDENTIFICAR", 244, 116, { align: "center" });
+        pdf.setTextColor(113, 128, 150);
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(5.5);
+        pdf.text("Credencial digital del estudiante", 244, 123, { align: "center" });
+
+        pdf.setTextColor(113, 128, 150);
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(6);
+        pdf.text("Institución Educativa Maestro Arenas Betancur", 148.5, 178, { align: "center" });
+
+        pdf.save(`credencial-${limpiarNombre(estudiante.documento || "estudiante")}.pdf`);
     } catch (error) {
-
-
-        console.error(
-            "Error generando PDF:",
-            error
-        );
-
-
+        console.error("Error generando PDF:", error);
         notificar(
-            "No fue posible generar el PDF.",
+            error?.message || "No fue posible generar el PDF. Verifica la foto y el código QR e inténtalo nuevamente.",
             "error"
         );
+    }
+}
 
+
+function obtenerImagenQRParaPDF() {
+    const contenedor = $("qrCarnet");
+    const canvas = contenedor?.querySelector("canvas");
+    if (canvas) {
+        return canvas.toDataURL("image/png");
     }
 
+    const imagen = contenedor?.querySelector("img");
+    if (imagen?.complete && imagen.naturalWidth > 0) {
+        return imagen.src;
+    }
+
+    throw new Error("No se pudo generar el código QR de la credencial.");
+}
+
+
+function cargarImagenParaPDF(src, ancho, alto, recortar) {
+    return new Promise((resolve, reject) => {
+        const imagen = new Image();
+        if (!String(src).startsWith("data:")) {
+            imagen.crossOrigin = "anonymous";
+        }
+
+        imagen.onload = () => {
+            try {
+                const canvas = document.createElement("canvas");
+                canvas.width = ancho;
+                canvas.height = alto;
+                const contexto = canvas.getContext("2d");
+                if (!contexto) {
+                    throw new Error("El navegador no pudo preparar una imagen para el PDF.");
+                }
+
+                contexto.fillStyle = "#ffffff";
+                contexto.fillRect(0, 0, ancho, alto);
+                if (recortar) {
+                    const escala = Math.max(ancho / imagen.width, alto / imagen.height);
+                    const origenAncho = ancho / escala;
+                    const origenAlto = alto / escala;
+                    const origenX = (imagen.width - origenAncho) / 2;
+                    const origenY = (imagen.height - origenAlto) / 2;
+                    contexto.drawImage(imagen, origenX, origenY, origenAncho, origenAlto, 0, 0, ancho, alto);
+                } else {
+                    const escala = Math.min(ancho / imagen.width, alto / imagen.height);
+                    const destinoAncho = imagen.width * escala;
+                    const destinoAlto = imagen.height * escala;
+                    contexto.drawImage(imagen, (ancho - destinoAncho) / 2, (alto - destinoAlto) / 2, destinoAncho, destinoAlto);
+                }
+                resolve(canvas.toDataURL("image/jpeg", 0.92));
+            } catch (error) {
+                reject(error);
+            }
+        };
+        imagen.onerror = () => reject(new Error("No se pudo cargar una de las imágenes de la credencial."));
+        imagen.src = src;
+    });
 }
 
 

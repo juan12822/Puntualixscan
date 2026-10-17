@@ -266,74 +266,15 @@ async function iniciarEstudiantes() {
    ============================================================ */
 
 async function protegerPagina() {
-
-    try {
-
-        if (window.PUNTUALIXSCAN?.protegerPagina) {
-
-            return Boolean(
-                await window.PUNTUALIXSCAN.protegerPagina({
-
-                    redirectTo:
-                        CONFIG_ESTUDIANTES.login
-
-                })
-            );
-
-        }
-
-
-        const client =
-            obtenerCliente();
-
-
-        const {
-            data,
-            error
-        } =
-            await client.auth.getSession();
-
-
-        if (error) {
-
-            throw error;
-
-        }
-
-
-        if (!data?.session) {
-
-            const usuario =
-                localStorage.getItem(
-                    "usuario"
-                );
-
-
-            if (!usuario) {
-
-                window.location.replace(
-                    CONFIG_ESTUDIANTES.login
-                );
-
-                return false;
-
-            }
-
-        }
-
-
-        return true;
-
-    } catch (error) {
-
-        console.error(
-            "Error de autenticación:",
-            error
-        );
-
-        throw error;
-
+    const proteger = window.PUNTUALIXSCAN?.protegerPagina;
+    if (typeof proteger !== "function") {
+        window.location.replace(CONFIG_ESTUDIANTES.login);
+        return false;
     }
+
+    return Boolean(
+        await proteger({ redirectTo: CONFIG_ESTUDIANTES.login })
+    );
 
 }
 
@@ -3165,8 +3106,9 @@ function obtenerFoto(
     if (
         !url ||
         !String(url).trim() ||
-        url ===
-        "imagenes/usuario.png"
+        ["imagenes/usuario.png", "imagenes/usuario.svg"].includes(
+            String(url).trim()
+        )
     ) {
 
         return FOTO_DEFAULT;

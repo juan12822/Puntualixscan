@@ -15,7 +15,18 @@
     const $ = id => document.getElementById(id);
     const PAGE_SIZE = 1000;
 
-    document.addEventListener("DOMContentLoaded", () => {
+    document.addEventListener("DOMContentLoaded", async () => {
+        const proteger = window.PUNTUALIXSCAN?.protegerPagina;
+        if (typeof proteger !== "function") {
+            console.error("No está disponible la verificación de permisos para los reportes.");
+            return;
+        }
+
+        const permitido = await proteger({ redirect: false });
+        if (!permitido) {
+            return;
+        }
+
         $("btnVistaAsistencia")?.addEventListener("click", () => cambiarVista("attendance"));
         $("btnVistaEstudiantes")?.addEventListener("click", () => cambiarVista("students"));
         $("periodoReporteEstudiantes")?.addEventListener("change", cargarReporteEstudiantes);
@@ -276,9 +287,17 @@
                 b.faltasEstimadas - a.faltasEstimadas ||
                 compararNombres(a, b)
         );
+        const porTardanzas = [...estudiantes]
+            .filter(estudiante => estudiante.llegadasTarde > 0)
+            .sort(
+                (a, b) =>
+                    b.llegadasTarde - a.llegadasTarde ||
+                    compararNombres(a, b)
+            );
         state.resultados = {
             estudiantes,
-            porFaltas: porFaltas.filter(estudiante => estudiante.faltasEstimadas > 0)
+            porFaltas: porFaltas.filter(estudiante => estudiante.faltasEstimadas > 0),
+            porTardanzas
         };
 
         renderizarTablasRanking();
@@ -500,7 +519,7 @@
             return;
         }
         const busqueda = normalizar($("buscarTodasFaltas")?.value || "");
-        const estudiantes = state.resultados.porFaltas.filter(estudiante =>
+        const estudiantes = state.resultados.porTardanzas.filter(estudiante =>
             !busqueda || [
                 estudiante.nombre,
                 estudiante.documento,
@@ -509,7 +528,7 @@
         );
         ponerTexto(
             "resumenListadoCompletoFaltas",
-            `${estudiantes.length} de ${state.resultados.porFaltas.length} estudiantes con faltas estimadas`
+            `${estudiantes.length} de ${state.resultados.porTardanzas.length} estudiantes con llegadas tarde`
         );
         renderizarFilasFaltas("tablaListadoCompletoFaltas", estudiantes);
     }
@@ -521,12 +540,12 @@
 
         const boton = $("btnVerTodasFaltas");
         if (boton) {
-            boton.disabled = state.resultados.porFaltas.length === 0;
-            boton.textContent = `Ver todos (${state.resultados.porFaltas.length})`;
+            boton.disabled = state.resultados.porTardanzas.length === 0;
+            boton.textContent = `Ver todos (${state.resultados.porTardanzas.length})`;
         }
         renderizarFilasFaltas(
             "tablaEstudiantesFaltas",
-            state.resultados.porFaltas.slice(0, 10)
+            state.resultados.porTardanzas.slice(0, 10)
         );
     }
 
@@ -544,7 +563,7 @@
             celda.className = "student-report-empty";
             celda.textContent = id === "tablaListadoCompletoFaltas" && normalizar($("buscarTodasFaltas")?.value)
                 ? "No se encontraron estudiantes con ese criterio."
-                : "No hay estudiantes con faltas estimadas para este periodo.";
+                : "No hay estudiantes con llegadas tarde para este periodo.";
             fila.appendChild(celda);
             tbody.appendChild(fila);
             return;
@@ -564,7 +583,7 @@
 
             const indicador = document.createElement("td");
             indicador.className = "student-report-count";
-            indicador.textContent = String(estudiante.faltasEstimadas);
+            indicador.textContent = String(estudiante.llegadasTarde);
             fila.appendChild(indicador);
 
             filas.appendChild(fila);
@@ -858,19 +877,19 @@
 
         const filas = [...state.resultados.estudiantes]
             .sort((a, b) =>
-                b.faltasEstimadas - a.faltasEstimadas ||
+                b.llegadasTarde - a.llegadasTarde ||
                 compararNombres(a, b)
             )
             .map(estudiante => ({
                 Estudiante: estudiante.nombre || "Sin nombre",
                 Documento: estudiante.documento || "",
                 "Grado / curso": estudiante.curso,
-                "Faltas estimadas": estudiante.faltasEstimadas,
-                "Días con asistencia": estudiante.diasAsistencia
+                "Llegadas tarde": estudiante.llegadasTarde,
+                "Días con tardanza": estudiante.diasTarde
             }));
         const hoja = XLSX.utils.json_to_sheet(filas);
         hoja["!cols"] = [
-            { wch: 30 }, { wch: 18 }, { wch: 18 }, { wch: 18 },
+            { wch: 30 }, { wch: 18 }, { wch: 22 }, { wch: 18 },
             { wch: 20 }
         ];
         const libro = XLSX.utils.book_new();

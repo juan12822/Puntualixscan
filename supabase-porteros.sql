@@ -188,6 +188,39 @@ revoke all on function public.portero_tiene_asistencia_hoy(text, text, date)
 grant execute on function public.portero_tiene_asistencia_hoy(text, text, date)
     to authenticated;
 
+create or replace function public.resumen_asistencia_hoy()
+returns table (
+    asistencias_hoy bigint,
+    llegadas_tarde bigint
+)
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+    if not exists (
+        select 1
+        from public.usuarios
+        where id = auth.uid()
+          and estado = 'aprobado'
+          and rol in ('administrador', 'profesor', 'portero')
+    ) then
+        raise exception 'No tienes permiso para consultar el resumen de asistencia.'
+            using errcode = '42501';
+    end if;
+
+    return query
+        select
+            count(*),
+            count(*) filter (where lower(trim(estado)) = 'tarde')
+        from public.asistencia
+        where fecha = (now() at time zone 'America/Bogota')::date;
+end;
+$$;
+
+revoke all on function public.resumen_asistencia_hoy() from public;
+grant execute on function public.resumen_asistencia_hoy() to authenticated;
+
 create or replace function public.portero_puede_registrar_asistencia(
     estudiante_id_buscar text
 )

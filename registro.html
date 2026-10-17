@@ -24,8 +24,8 @@
         .brand-panel::before { width:44rem; height:44rem; top:-20rem; left:-17rem; border:1px solid rgb(255 255 255 / 18%); box-shadow:inset 0 0 0 4rem rgb(78 153 255 / 8%),inset 0 0 0 9rem rgb(78 153 255 / 7%),inset 0 0 0 14rem rgb(78 153 255 / 6%); }
         .brand-panel::after { width:25rem; height:25rem; right:-10rem; bottom:-7rem; background:rgb(103 229 196 / 22%); }
         .brand-content { display:flex; flex-direction:column; width:100%; max-width:39rem; margin:auto; }
-        .brand-mark { display:grid; place-items:center; width:3.25rem; height:3.25rem; margin-bottom:2.75rem; overflow:hidden; border:1px solid rgb(255 255 255 / 35%); border-radius:1rem; background:#fff; box-shadow:0 12px 28px rgb(0 14 48 / 22%); }
-        .brand-mark img { width:2.5rem; height:2.5rem; object-fit:contain; }
+        .brand-mark { display:grid; place-items:center; width:5.25rem; height:5.25rem; margin-bottom:2.75rem; overflow:hidden; border:1px solid rgb(255 255 255 / 35%); border-radius:1.25rem; background:#fff; box-shadow:0 12px 28px rgb(0 14 48 / 22%); }
+        .brand-mark img { width:4.5rem; height:4.5rem; object-fit:contain; transform:scale(1.5); }
         .brand-kicker,.eyebrow { margin:0 0 1rem; font-size:.76rem; font-weight:800; letter-spacing:.14em; text-transform:uppercase; }
         .brand-kicker { color:var(--mint); }
         .brand-title { max-width:10ch; margin:0; font-family:Manrope,Inter,sans-serif; font-size:clamp(2.25rem,4.6vw,4.4rem); line-height:1.05; letter-spacing:-.06em; }
@@ -46,6 +46,7 @@
         .role-selected { margin:0 0 1.2rem; color:#617392; font-size:.78rem; }
         .role-selected strong { color:var(--primary); }
         .register-form { display:grid; gap:1rem; }
+        .register-form[hidden] { display:none; }
         .form-row { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:1rem; }
         .field { display:grid; gap:.55rem; }
         .field-label { color:#283956; font-size:.84rem; font-weight:700; }
@@ -66,7 +67,7 @@
         .security-note i { color:var(--success); }
         .access-footer { margin:2rem 0 0; color:#8795ab; font-size:.75rem; line-height:1.6; text-align:center; }
         @keyframes enter { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
-        @media (max-width:850px) { .access-page { grid-template-columns:1fr; } .brand-panel { display:none; } .access-panel { min-height:100vh; } .mobile-brand { display:flex; align-items:center; gap:.7rem; margin-bottom:2rem; font-family:Manrope,Inter,sans-serif; font-size:1rem; font-weight:800; } .mobile-brand img { width:2.4rem; height:2.4rem; object-fit:contain; padding:.25rem; border-radius:.7rem; background:#fff; box-shadow:0 5px 15px rgb(16 33 63 / 10%); } }
+        @media (max-width:850px) { .access-page { grid-template-columns:1fr; } .brand-panel { display:none; } .access-panel { min-height:100vh; } .mobile-brand { display:flex; align-items:center; gap:1rem; margin-bottom:2rem; font-family:Manrope,Inter,sans-serif; font-size:1rem; font-weight:800; } .mobile-brand img { width:3.5rem; height:3.5rem; object-fit:contain; padding:.25rem; border-radius:.9rem; background:#fff; box-shadow:0 5px 15px rgb(16 33 63 / 10%); transform:scale(1.4); } }
         @media (max-width:560px) { .form-row { grid-template-columns:1fr; } .role-selector { grid-template-columns:1fr; } }
         @media (max-width:420px) { .access-panel { padding:1.5rem; } }
         @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms !important; transition-duration:.01ms !important; } }
@@ -79,7 +80,7 @@
                 <div class="brand-mark"><img src="imagenes/logo.png" alt="Logo de Puntualixscan"></div>
                 <p class="brand-kicker">Gestión académica conectada</p>
                 <h2 class="brand-title">Crea tu acceso.</h2>
-                <p class="brand-copy">Registra a estudiantes, profesores o administradores y comienza a gestionar la información del sistema desde un solo punto.</p>
+                <p class="brand-copy">Solicita acceso como estudiante o profesor y gestiona la información académica desde un solo punto.</p>
                 <ul class="feature-list" aria-label="Características de la plataforma">
                     <li><i class="fa-solid fa-check" aria-hidden="true"></i>Registro seguro por rol</li>
                     <li><i class="fa-solid fa-check" aria-hidden="true"></i>Acceso rápido a la plataforma</li>
@@ -93,15 +94,16 @@
                 <div class="mobile-brand"><img src="imagenes/logo.png" alt="Logo de Puntualixscan">Puntualixscan Enterprise</div>
                 <p class="eyebrow">Nuevo usuario</p>
                 <h1 id="register-title">Crear cuenta</h1>
-                <p class="intro">Selecciona el tipo de usuario que vas a registrar y completa la información.</p>
+                <p class="intro">Primero selecciona si vas a crear una cuenta de estudiante o de administración.</p>
 
-                <div class="role-selector" aria-label="Seleccionar tipo de usuario">
-                    <button class="role-option active" type="button" data-role="estudiante"><i class="fa-solid fa-user-graduate"></i><span>Estudiante</span></button>
-                    <button class="role-option" type="button" data-role="profesor"><i class="fa-solid fa-chalkboard-user"></i><span>Profesor</span></button>
+                <div class="role-selector" role="group" aria-label="Seleccionar tipo de usuario">
+                    <button class="role-option" type="button" data-user-type="estudiante" aria-pressed="false"><i class="fa-solid fa-user-graduate" aria-hidden="true"></i><span>Estudiante</span></button>
+                    <button class="role-option" type="button" data-user-type="administracion" aria-pressed="false"><i class="fa-solid fa-building-shield" aria-hidden="true"></i><span>Administración</span></button>
                 </div>
-                <p class="role-selected">Registro para: <strong id="roleLabel">Estudiante</strong></p>
+                <p class="role-selected">Registro para: <strong id="roleLabel">Selecciona una opción</strong></p>
+                <p id="adminRegistrationNotice" class="helper" hidden>Las cuentas de administración que se pueden solicitar desde aquí son únicamente para profesores. Las cuentas de administrador y portero las crea la institución.</p>
 
-                <form id="formRegistro" class="register-form">
+                <form id="formRegistro" class="register-form" hidden>
                     <input type="hidden" id="tipoUsuario" name="tipoUsuario" value="estudiante">
 
                     <div class="form-row">

@@ -1,8 +1,9 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const roleButtons = document.querySelectorAll('.role-option');
+    const userTypeButtons = document.querySelectorAll('[data-user-type]');
     const roleInput = document.getElementById('tipoUsuario');
     const roleLabel = document.getElementById('roleLabel');
     const form = document.getElementById('formRegistro');
+    const adminRegistrationNotice = document.getElementById('adminRegistrationNotice');
     const cursoField = document.getElementById('cursoField');
     const cursoLabel = document.getElementById('cursoLabel');
     const cursoInput = document.getElementById('curso');
@@ -10,17 +11,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const gradoRegistro = document.getElementById('gradoRegistro');
     const grupoRegistro = document.getElementById('grupoRegistro');
 
-    const roleNames = {
-        estudiante: 'Estudiante',
-        profesor: 'Profesor',
-        administrador: 'Administrador'
-    };
+    let selectedUserType = '';
 
-    function setRole(role) {
-        const validRole = roleNames[role] ? role : 'estudiante';
-        roleInput.value = validRole;
-        roleLabel.textContent = roleNames[validRole];
-        const esEstudiante = validRole === 'estudiante';
+    function setUserType(userType) {
+        if (userType !== 'estudiante' && userType !== 'administracion') return;
+
+        selectedUserType = userType;
+        const esEstudiante = userType === 'estudiante';
+        roleInput.value = esEstudiante ? 'estudiante' : 'profesor';
+        roleLabel.textContent = esEstudiante ? 'Estudiante' : 'Profesor';
+        adminRegistrationNotice.hidden = esEstudiante;
+        form.hidden = false;
         cursoField.style.display = esEstudiante ? 'none' : 'flex';
         cursoLabel.textContent = esEstudiante ? 'Grado y grupo' : 'Curso / Área';
         cursoInput.required = !esEstudiante;
@@ -28,17 +29,16 @@ document.addEventListener('DOMContentLoaded', () => {
         gradoRegistro.required = esEstudiante;
         grupoRegistro.required = esEstudiante;
 
-        roleButtons.forEach((button) => {
-            const active = button.dataset.role === validRole;
+        userTypeButtons.forEach((button) => {
+            const active = button.dataset.userType === userType;
             button.classList.toggle('active', active);
+            button.setAttribute('aria-pressed', String(active));
         });
     }
 
-    roleButtons.forEach((button) => {
-        button.addEventListener('click', () => setRole(button.dataset.role));
+    userTypeButtons.forEach((button) => {
+        button.addEventListener('click', () => setUserType(button.dataset.userType));
     });
-
-    setRole(roleInput.value);
 
     async function registrarEnSupabase(datos) {
         const client = window.PUNTUALIXSCAN?.client;
@@ -76,11 +76,21 @@ document.addEventListener('DOMContentLoaded', () => {
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
 
+        if (!selectedUserType) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Selecciona el tipo de usuario',
+                text: 'Elige Estudiante o Administración antes de continuar.',
+                confirmButtonColor: '#165dff'
+            });
+            return;
+        }
+
         const nombre = document.getElementById('nombreCompleto').value.trim();
         const documento = document.getElementById('documento').value.trim();
         const correo = document.getElementById('correoRegistro').value.trim();
         const telefono = document.getElementById('telefono').value.trim();
-        const tipo = roleInput.value === 'profesor' ? 'profesor' : 'estudiante';
+        const tipo = selectedUserType === 'administracion' ? 'profesor' : 'estudiante';
         const curso = tipo === 'estudiante'
             ? `${gradoRegistro.value}-${grupoRegistro.value}`
             : cursoInput.value.trim();

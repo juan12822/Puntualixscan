@@ -233,65 +233,22 @@
     // ========================================================
 
     async function verificarSesion() {
-
-        const usuario =
-            (() => {
-
-                try {
-
-                    return JSON.parse(
-                        localStorage.getItem(
-                            "usuario"
-                        ) || "null"
-                    );
-
-                } catch (_) {
-
-                    return null;
-                }
-
-            })();
-
-        if (
-            !usuario &&
-            !window.PUNTUALIXSCAN
-                ?.auth
-        ) {
-
-            window.location.href =
-                "login.html";
-
+        const proteger = window.PUNTUALIXSCAN?.protegerPagina;
+        if (typeof proteger !== "function") {
+            window.location.replace("login.html");
             return false;
         }
 
-        if (
-            window.PUNTUALIXSCAN
-                ?.protegerPagina
-        ) {
+        const permitido = await proteger({ redirect: true });
+        if (!permitido) {
+            return false;
+        }
 
-            try {
-
-                const permitido =
-                    await window.PUNTUALIXSCAN.protegerPagina(
-                        {
-                            redirect: true
-                        }
-                    );
-
-                if (
-                    permitido === false
-                ) {
-
-                    return false;
-                }
-
-            } catch (error) {
-
-                console.warn(
-                    "No se pudo validar sesión:",
-                    error
-                );
-            }
+        let usuario = null;
+        try {
+            usuario = JSON.parse(localStorage.getItem("usuario") || "null");
+        } catch (error) {
+            console.error("No se pudo recuperar el perfil verificado:", error);
         }
 
         const nombre =
@@ -1095,6 +1052,14 @@
             </svg>
         `);
 
+    function obtenerFotoEstudiante(foto) {
+        const valor = String(foto || "").trim();
+        return !valor ||
+            ["imagenes/usuario.png", "imagenes/usuario.svg"].includes(valor)
+            ? FOTO_DEFAULT
+            : valor;
+    }
+
 
     // ========================================================
     // TABLA DE ACTIVIDAD
@@ -1216,8 +1181,7 @@
 
                                 <img
                                     src="${escapeHTML(
-                                        estudiante.foto ||
-                                        FOTO_DEFAULT
+                                        obtenerFotoEstudiante(estudiante.foto)
                                     )}"
                                     alt=""
                                     class="foto-tabla"
@@ -1425,8 +1389,7 @@
                     };
 
                 foto.src =
-                    estudiante.foto ||
-                    FOTO_DEFAULT;
+                    obtenerFotoEstudiante(estudiante.foto);
             }
 
 
