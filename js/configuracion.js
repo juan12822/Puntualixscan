@@ -947,7 +947,7 @@ const Configuracion = (() => {
                     ? "No se pudo conectar con la Edge Function crear-portero. Confirma que ejecutaste `supabase functions deploy crear-portero --project-ref dejuztyypfxtejfjfmlp`, que estás conectado a Internet y vuelve a cargar la página. Si ya la desplegaste, vuelve a desplegarla para actualizar CORS."
                     : errorMessage
                         ? `No se pudo crear el portero: ${errorMessage}`
-                        : "No se pudo crear el portero. Verifica la conexión y que hayas ejecutado supabase-porteros.sql.",
+                        : "No se pudo crear el portero. Verifica la conexión y la configuración de permisos de la base de datos.",
                 "error"
             );
         } finally {
@@ -998,7 +998,7 @@ const Configuracion = (() => {
         } catch (error) {
             console.error("No se pudo cargar la lista de porteros:", error);
             mostrarEstadoPorteros(
-                "No se pudo cargar la lista. Verifica que hayas ejecutado supabase-porteros.sql."
+                "No se pudo cargar la lista. Verifica la conexión y los permisos de la base de datos."
             );
         }
     }
@@ -1094,7 +1094,7 @@ const Configuracion = (() => {
             );
 
             mostrarEstadoProfesores(
-                "No se pudo cargar el estado. Verifica que hayas ejecutado supabase-presencia-profesores.sql en Supabase y vuelve a intentar."
+                "No se pudo cargar el estado. Verifica la conexión y la configuración de presencia en la base de datos."
             );
 
         } finally {
