@@ -1052,12 +1052,30 @@
             </svg>
         `);
 
-    function obtenerFotoEstudiante(foto) {
-        const valor = String(foto || "").trim();
-        return !valor ||
-            ["imagenes/usuario.png", "imagenes/usuario.svg"].includes(valor)
-            ? FOTO_DEFAULT
-            : valor;
+    async function cargarFotoEstudiante(imagen, foto) {
+        if (!imagen || !foto) return;
+        const valor = String(foto).trim();
+        try {
+            const resolver = window.PUNTUALIXSCAN?.fotos?.urlEstudiante;
+            const url = typeof resolver === "function"
+                ? await resolver(valor)
+                : valor;
+            if (imagen.isConnected && imagen.dataset.fotoEstudiante === valor && url) {
+                imagen.src = url;
+            }
+        } catch (error) {
+            console.error("No se pudo cargar la fotografía del estudiante.", error);
+            if (imagen.isConnected) imagen.src = FOTO_DEFAULT;
+        }
+    }
+
+
+    function cargarFotosTablaEstudiantes(contenedor) {
+        contenedor
+            ?.querySelectorAll("img[data-foto-estudiante]")
+            .forEach(imagen =>
+                cargarFotoEstudiante(imagen, imagen.dataset.fotoEstudiante)
+            );
     }
 
 
@@ -1180,9 +1198,8 @@
                             <td>
 
                                 <img
-                                    src="${escapeHTML(
-                                        obtenerFotoEstudiante(estudiante.foto)
-                                    )}"
+                                    src="${escapeHTML(FOTO_DEFAULT)}"
+                                    data-foto-estudiante="${escapeHTML(estudiante.foto || "")}"
                                     alt=""
                                     class="foto-tabla"
                                     width="42"
@@ -1305,6 +1322,8 @@
                 }
             ).join("");
 
+        cargarFotosTablaEstudiantes(body);
+
 
         body
             .querySelectorAll(
@@ -1388,8 +1407,9 @@
                             FOTO_DEFAULT;
                     };
 
-                foto.src =
-                    obtenerFotoEstudiante(estudiante.foto);
+                foto.src = FOTO_DEFAULT;
+                foto.dataset.fotoEstudiante = estudiante.foto || "";
+                cargarFotoEstudiante(foto, estudiante.foto);
             }
 
 

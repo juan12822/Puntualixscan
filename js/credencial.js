@@ -671,12 +671,6 @@ function mostrarCredencial(
 ) {
 
 
-    const foto =
-        obtenerFotoSegura(
-            estudiante.foto
-        );
-
-
     const imagen =
         $("fotoEstudiante");
 
@@ -690,14 +684,23 @@ function mostrarCredencial(
                 this.onerror =
                     null;
 
-                this.src =
-                    FOTO_DEFAULT;
-
             };
 
-
-        imagen.src =
-            foto;
+        imagen.src = FOTO_DEFAULT;
+        imagen.dataset.fotoEstudiante = estudiante.foto || "";
+        obtenerFotoSegura(estudiante.foto)
+            .then(foto => {
+                if (
+                    imagen.isConnected &&
+                    imagen.dataset.fotoEstudiante === String(estudiante.foto || "")
+                ) {
+                    imagen.src = foto;
+                }
+            })
+            .catch(error => {
+                console.error("No se pudo cargar la fotografía de la credencial.", error);
+                if (imagen.isConnected) imagen.src = FOTO_DEFAULT;
+            });
 
     }
 
@@ -765,7 +768,7 @@ function mostrarCredencial(
    FOTO SEGURA
 ========================================================= */
 
-function obtenerFotoSegura(
+async function obtenerFotoSegura(
     foto
 ) {
 
@@ -785,7 +788,15 @@ function obtenerFotoSegura(
     }
 
 
-    return valor;
+    try {
+        const resolver = window.PUNTUALIXSCAN?.fotos?.urlEstudiante;
+        return typeof resolver === "function"
+            ? await resolver(valor)
+            : valor;
+    } catch (error) {
+        console.error("No se pudo cargar la fotografía del estudiante.", error);
+        return FOTO_DEFAULT;
+    }
 
 }
 
@@ -943,7 +954,9 @@ async function descargarPDF() {
         const imagenQR = obtenerImagenQRParaPDF();
 
         const [fotoResult, logoResult] = await Promise.allSettled([
-            cargarImagenParaPDF(obtenerFotoSegura(estudiante.foto), 420, 500, true),
+            obtenerFotoSegura(estudiante.foto).then(foto =>
+                cargarImagenParaPDF(foto, 420, 500, true)
+            ),
             cargarImagenParaPDF("imagenes/logo.png", 180, 180, false)
         ]);
 

@@ -12,7 +12,24 @@ supabase functions deploy enviar-correo-acudiente --project-ref dejuztyypfxtejfj
 
 La función usa `SUPABASE_URL`, `SUPABASE_ANON_KEY` y `SUPABASE_SERVICE_ROLE_KEY` del entorno de Edge Functions. No agregues la llave `service_role` al código del navegador ni al repositorio.
 
-La base de datos debe tener configuradas las políticas RLS para que solo administradores aprobados puedan gestionar estudiantes. Los scripts SQL de instalación no se conservan en este repositorio.
+La base de datos debe tener configuradas las políticas RLS para que solo administradores aprobados puedan gestionar estudiantes. No se conserva aquí un volcado completo del esquema; la política de Storage para las fotos de estudiantes está en el script SQL indicado a continuación.
+
+### Bucket privado exclusivo para fotografías de estudiantes
+
+Las nuevas fotos de estudiantes se guardan como rutas relativas (`fotos/{documento}_{timestamp}_{codigoAleatorio}.{extension}`) en el bucket privado `fotos-estudiantes`. El bucket anterior `estudiantes` y sus objetos no se borran; las URL públicas antiguas siguen siendo compatibles.
+
+1. En **Storage > New bucket**, crea `fotos-estudiantes` como **Private**.
+2. Configura máximo de **5 MB** y los tipos `image/jpeg`, `image/png` e `image/webp`.
+3. En **SQL Editor**, copia y ejecuta [`supabase/policies/fotos-estudiantes-admin.sql`](./supabase/policies/fotos-estudiantes-admin.sql). Autoriza leer con URL firmada a administradores, profesores y porteros aprobados; estudiantes aprobados solo pueden leer objetos que comiencen con su propio documento. Insertar, actualizar y borrar queda limitado a administradores aprobados. No modifica políticas ni objetos del bucket anterior.
+4. Publica los archivos actualizados de la aplicación listados en la entrega. La credencial, escáner, reportes, dashboard y lista de estudiantes solicitan URL firmadas con una hora de vigencia.
+5. Prueba las cargas JPG, PNG y WEBP, lista, credencial, escáner QR y reportes con una sesión autenticada. No se realizaron pruebas contra el proyecto Supabase remoto desde este entorno.
+6. Para que la eliminación completa de un estudiante limpie objetos nuevos y antiguos, despliega la función actualizada:
+
+   ```powershell
+   supabase functions deploy eliminar-estudiante --project-ref dejuztyypfxtejfjfmlp
+   ```
+
+No borres ni vacíes el bucket `estudiantes`: puede contener fotos anteriores todavía referenciadas por perfiles. No agregues la llave `service_role` al navegador.
 
 ## Cuentas de porteros
 
@@ -25,6 +42,18 @@ supabase functions deploy crear-portero --project-ref dejuztyypfxtejfjfmlp
 La base de datos también debe tener la función segura `resumen_asistencia_hoy`, que permite al escáner actualizar los contadores de asistencias y llegadas tarde del día sin dar a los porteros acceso a los registros completos.
 
 En Configuración, un administrador aprobado puede crear cada cuenta definiendo su contraseña. El sistema guarda el perfil y el código `PT-##########` en `usuarios`; el portero inicia sesión seleccionando “Portero” e ingresando ese código y la contraseña. Los porteros solo tienen acceso operativo al escáner y a la opción de actualizar su foto de perfil; solo pueden registrar llegadas (`Colegio` o `Media Técnica`, a tiempo o tarde). La contraseña nunca se guarda en una tabla ni se muestra de nuevo.
+
+## Administradores y eliminación de personal
+
+La creación de otros administradores y la eliminación de cuentas de profesores o porteros se ejecutan en la Edge Function `administrar-usuarios`. La función vuelve a validar la sesión y el rol/estado en el servidor; ocultar botones en el panel no es la medida de seguridad. Para desplegarla en el proyecto:
+
+1. Instala e inicia sesión en Supabase CLI si aún no lo hiciste: `supabase login`.
+2. Desde la carpeta del proyecto, vincúlalo una vez con `supabase link --project-ref dejuztyypfxtejfjfmlp`.
+3. Despliega la función: `supabase functions deploy administrar-usuarios --project-ref dejuztyypfxtejfjfmlp`.
+4. En Supabase, confirma que la función esté desplegada y que tenga disponibles los secretos de entorno `SUPABASE_URL`, `SUPABASE_ANON_KEY` y `SUPABASE_SERVICE_ROLE_KEY`. La llave de servicio debe permanecer únicamente en el entorno de Edge Functions.
+5. En Configuración, inicia sesión como administrador aprobado. El panel permite crear administradores y eliminar profesores o porteros; el servidor rechaza cualquier acción de una sesión que no sea de administrador aprobado.
+
+No es necesario crear una función SQL para estas acciones. La implementación está en [`supabase/functions/administrar-usuarios/index.ts`](./supabase/functions/administrar-usuarios/index.ts); los comandos anteriores la publican en Edge Functions.
 
 ## Navegación por rol
 

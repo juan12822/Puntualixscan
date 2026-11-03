@@ -246,7 +246,7 @@ function normalizarIngreso(valor) {
    FOTO SEGURA
    ============================================================ */
 
-function colocarFoto(elemento, url) {
+async function colocarFoto(elemento, url) {
 
     if (!elemento) {
         return;
@@ -258,13 +258,21 @@ function colocarFoto(elemento, url) {
         this.src = FOTO_DEFAULT;
     };
 
-    const foto =
-        url &&
-        String(url).trim() !== ""
-            ? String(url).trim()
-            : FOTO_DEFAULT;
+    elemento.src = FOTO_DEFAULT;
+    if (!url) return;
 
-    elemento.src = foto;
+    try {
+        const resolver = window.PUNTUALIXSCAN?.fotos?.urlEstudiante;
+        const foto = typeof resolver === "function"
+            ? await resolver(url)
+            : String(url).trim();
+        if (elemento.isConnected && foto) {
+            elemento.src = foto;
+        }
+    } catch (error) {
+        console.error("No se pudo cargar la fotografía del estudiante en el escáner.", error);
+        elemento.src = FOTO_DEFAULT;
+    }
 }
 
 
@@ -757,7 +765,7 @@ async function buscarEstudiante(codigoQR) {
                 "Sin curso";
         }
 
-        colocarFoto(
+        await colocarFoto(
             fotoEstudiante,
             data.foto
         );

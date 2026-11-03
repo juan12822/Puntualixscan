@@ -7,6 +7,8 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS"
 };
 
+const PHOTO_BUCKETS = ["fotos-estudiantes", "estudiantes"] as const;
+
 function respond(status: number, body: Record<string, unknown>) {
   return new Response(JSON.stringify(body), {
     status,
@@ -14,24 +16,34 @@ function respond(status: number, body: Record<string, unknown>) {
   });
 }
 
-function getPhotoPath(photoUrl: string | null) {
+function getPhotoLocation(photoUrl: string | null) {
   if (!photoUrl) return null;
+
+  if (
+    photoUrl.startsWith("fotos/") &&
+    !photoUrl.split("/").some((part) => part === ".." || !part)
+  ) {
+    return { bucket: "fotos-estudiantes", path: photoUrl };
+  }
 
   try {
     const pathname = new URL(photoUrl).pathname;
-    const marker = "/storage/v1/object/public/estudiantes/";
-    const markerIndex = pathname.indexOf(marker);
+    for (const bucket of PHOTO_BUCKETS) {
+      const marker = `/storage/v1/object/public/${bucket}/`;
+      const markerIndex = pathname.indexOf(marker);
+      if (markerIndex < 0) continue;
 
-    if (markerIndex < 0) return null;
+      const objectPath = decodeURIComponent(pathname.slice(markerIndex + marker.length));
+      const parts = objectPath.split("/");
 
-    const objectPath = decodeURIComponent(pathname.slice(markerIndex + marker.length));
-    const parts = objectPath.split("/");
-
-    if (!objectPath.startsWith("fotos/") || parts.some((part) => part === ".." || !part)) {
-      return null;
+      if (
+        objectPath.startsWith("fotos/") &&
+        !parts.some((part) => part === ".." || !part)
+      ) {
+        return { bucket, path: objectPath };
+      }
     }
-
-    return objectPath;
+    return null;
   } catch {
     return null;
   }
@@ -121,45 +133,54 @@ serve(async (request) => {
       if (error && !userAlreadyDeleted) throw error;
     }
 
-    const photoPaths = new Set<string>();
-    const currentPhotoPath = getPhotoPath(student.foto);
+    const photoPaths = new Map<string, Set<string>>();
+    const currentPhoto = getPhotoLocation(student.foto);
 
-    if (currentPhotoPath) photoPaths.add(currentPhotoPath);
+    if (currentPhoto) {
+      photoPaths.set(currentPhoto.bucket, new Set([currentPhoto.path]));
+    }
 
     if (student.documento) {
-      let offset = 0;
       const pageSize = 100;
 
-      while (true) {
-        const { data: photos, error } = await adminClient.storage
-          .from("estudiantes")
-          .list("fotos", {
-            limit: pageSize,
-            offset,
-            search: `${student.documento}_`
-          });
+      for (const bucket of PHOTO_BUCKETS) {
+        let offset = 0;
+        const bucketPaths = photoPaths.get(bucket) || new Set<string>();
 
-        if (error) throw error;
+        while (true) {
+          const { data: photos, error } = await adminClient.storage
+            .from(bucket)
+            .list("fotos", {
+              limit: pageSize,
+              offset,
+              search: `${student.documento}_`
+            });
 
-        for (const photo of photos || []) {
-          if (photo.id && photo.name.startsWith(`${student.documento}_`)) {
-            photoPaths.add(`fotos/${photo.name}`);
+          if (error) throw error;
+
+          for (const photo of photos || []) {
+            if (photo.id && photo.name.startsWith(`${student.documento}_`)) {
+              bucketPaths.add(`fotos/${photo.name}`);
+            }
           }
+
+          if (!photos || photos.length < pageSize) break;
+          offset += photos.length;
         }
 
-        if (!photos || photos.length < pageSize) break;
-        offset += photos.length;
+        photoPaths.set(bucket, bucketPaths);
       }
     }
 
-    const photoPathsToRemove = [...photoPaths];
+    for (const [bucket, paths] of photoPaths) {
+      const photoPathsToRemove = [...paths];
+      for (let index = 0; index < photoPathsToRemove.length; index += 100) {
+        const { error } = await adminClient.storage
+          .from(bucket)
+          .remove(photoPathsToRemove.slice(index, index + 100));
 
-    for (let index = 0; index < photoPathsToRemove.length; index += 100) {
-      const { error } = await adminClient.storage
-        .from("estudiantes")
-        .remove(photoPathsToRemove.slice(index, index + 100));
-
-      if (error) throw error;
+        if (error) throw error;
+      }
     }
 
     const { error: attendanceError } = await adminClient

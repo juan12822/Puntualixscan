@@ -594,6 +594,36 @@
             gap: 10px;
         }
 
+        .admin-list-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .admin-list-search {
+            width: 100%;
+            min-width: 0;
+            border: 1px solid #dce4ee;
+            border-radius: 8px;
+            padding: 9px 11px;
+            color: #172033;
+            font: inherit;
+            font-size: 11px;
+        }
+
+        .admin-list-toggle {
+            flex-shrink: 0;
+            border: 0;
+            padding: 8px 2px;
+            background: transparent;
+            color: #315b9f;
+            cursor: pointer;
+            font: inherit;
+            font-size: 10px;
+            font-weight: 800;
+        }
+
 
         .approval-item {
             display: flex;
@@ -658,6 +688,11 @@
 
 
         .approval-reject {
+            background: #fff0f0;
+            color: #b04444;
+        }
+
+        .approval-delete {
             background: #fff0f0;
             color: #b04444;
         }
@@ -1329,6 +1364,10 @@
                         </div>
 
                         <div class="config-panel-body">
+                            <div class="admin-list-controls">
+                                <input id="buscarSolicitudes" class="admin-list-search" type="search" placeholder="Buscar por nombre o correo..." autocomplete="off" aria-label="Buscar solicitudes por nombre o correo">
+                                <button id="verTodasSolicitudes" class="admin-list-toggle" type="button" hidden>Ver todas</button>
+                            </div>
                             <div id="listaSolicitudes" class="approval-list">
                                 <p class="approval-empty">Cargando solicitudes...</p>
                             </div>
@@ -1380,6 +1419,10 @@
                                 <span></span>
                             </div>
                             <p class="profesor-presencia-note">Entrega al portero el código generado y la contraseña que definiste. La contraseña no se vuelve a mostrar.</p>
+                            <div class="admin-list-controls">
+                                <input id="buscarPorteros" class="admin-list-search" type="search" placeholder="Buscar por nombre o correo..." autocomplete="off" aria-label="Buscar porteros por nombre o correo">
+                                <button id="verTodosPorteros" class="admin-list-toggle" type="button" hidden>Ver todos</button>
+                            </div>
                             <div id="listaPorteros" class="approval-list" aria-live="polite">
                                 <p class="approval-empty">Cargando porteros...</p>
                             </div>
@@ -1420,9 +1463,52 @@
                                 La actividad se actualiza mientras el profesor mantiene visible una página institucional.
                                 Se considera en línea si reportó actividad en los últimos 2 minutos.
                             </p>
+                            <div class="admin-list-controls">
+                                <input id="buscarProfesores" class="admin-list-search" type="search" placeholder="Buscar por nombre o correo..." autocomplete="off" aria-label="Buscar profesores por nombre o correo">
+                                <button id="verTodosProfesores" class="admin-list-toggle" type="button" hidden>Ver todos</button>
+                            </div>
                             <div id="listaProfesoresEnLinea" class="approval-list" aria-live="polite">
                                 <p class="approval-empty">Cargando profesores...</p>
                             </div>
+                        </div>
+                    </section>
+
+                    <section id="panelCrearAdministrador" class="config-panel" hidden>
+                        <div class="config-panel-header">
+                            <div class="config-panel-title">
+                                <div class="config-panel-icon">
+                                    <i class="fa-solid fa-user-shield" aria-hidden="true"></i>
+                                </div>
+                                <div>
+                                    <h2>Crear administrador</h2>
+                                    <p>Solo los administradores aprobados pueden crear otras cuentas administrativas.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="config-panel-body">
+                            <form id="formCrearAdministrador">
+                                <div class="form-grid">
+                                    <div class="form-group full">
+                                        <label for="nombreAdministrador">Nombre del administrador</label>
+                                        <input id="nombreAdministrador" type="text" maxlength="100" autocomplete="name" required>
+                                    </div>
+                                    <div class="form-group full">
+                                        <label for="correoAdministradorNuevo">Correo de acceso</label>
+                                        <input id="correoAdministradorNuevo" type="email" maxlength="254" autocomplete="email" required>
+                                    </div>
+                                    <div class="form-group full">
+                                        <label for="claveAdministradorNuevo">Contraseña inicial (mínimo 8 caracteres)</label>
+                                        <input id="claveAdministradorNuevo" type="password" minlength="8" maxlength="72" autocomplete="new-password" required>
+                                    </div>
+                                </div>
+                                <div class="config-actions">
+                                    <button id="btnCrearAdministrador" type="submit" class="config-btn config-btn-primary">
+                                        <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
+                                        Crear administrador
+                                    </button>
+                                </div>
+                            </form>
+                            <p class="profesor-presencia-note">Comparte la contraseña inicial de forma segura. El nuevo administrador podrá cambiarla al iniciar sesión.</p>
                         </div>
                     </section>
 

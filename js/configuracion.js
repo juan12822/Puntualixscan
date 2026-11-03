@@ -26,6 +26,18 @@ const Configuracion = (() => {
     let intervaloProfesores =
         null;
 
+    const listasAdmin = {
+        porteros: [],
+        profesores: [],
+        presencias: [],
+        solicitudes: [],
+        expandidas: {
+            porteros: false,
+            profesores: false,
+            solicitudes: false
+        }
+    };
+
 
     /* =====================================================
        SELECTOR
@@ -111,6 +123,7 @@ const Configuracion = (() => {
             await cargarSolicitudes();
             await iniciarGestionPorteros();
             await iniciarMonitoreoProfesores();
+            await iniciarCreacionAdministradores();
         }
 
         actualizarInterfaz();
@@ -209,17 +222,44 @@ const Configuracion = (() => {
                 gestionarSolicitud
             );
 
+        $("buscarSolicitudes")
+            ?.addEventListener("input", () => mostrarSolicitudes(listasAdmin.solicitudes));
+
+        $("verTodasSolicitudes")
+            ?.addEventListener("click", () => alternarListaAdmin("solicitudes"));
+
+        $("buscarPorteros")
+            ?.addEventListener("input", () => renderizarPorteros());
+
+        $("verTodosPorteros")
+            ?.addEventListener("click", () => alternarListaAdmin("porteros"));
+
+        $("listaPorteros")
+            ?.addEventListener("click", gestionarEliminacionPersonal);
+
         $("btnActualizarProfesoresEnLinea")
             ?.addEventListener(
                 "click",
                 cargarProfesoresActivos
             );
 
+        $("buscarProfesores")
+            ?.addEventListener("input", () => renderizarProfesoresActivos());
+
+        $("verTodosProfesores")
+            ?.addEventListener("click", () => alternarListaAdmin("profesores"));
+
+        $("listaProfesoresEnLinea")
+            ?.addEventListener("click", gestionarEliminacionPersonal);
+
         $("formCrearPortero")
             ?.addEventListener(
                 "submit",
                 crearPortero
             );
+
+        $("formCrearAdministrador")
+            ?.addEventListener("submit", crearAdministrador);
 
         $("btnActualizarPorteros")
             ?.addEventListener(
@@ -956,6 +996,137 @@ const Configuracion = (() => {
     }
 
 
+    async function iniciarCreacionAdministradores() {
+        const panel = $("panelCrearAdministrador");
+        const client = window.PUNTUALIXSCAN?.client;
+
+        if (!panel || !client) return;
+
+        try {
+            const { data, error } = await client.rpc("es_administrador");
+            if (error) throw error;
+            panel.hidden = data !== true;
+        } catch (error) {
+            console.error("No se pudo verificar el permiso para crear administradores:", error);
+            panel.hidden = true;
+        }
+    }
+
+
+    async function crearAdministrador(evento) {
+        evento.preventDefault();
+
+        const client = window.PUNTUALIXSCAN?.client;
+        const form = $("formCrearAdministrador");
+        const boton = $("btnCrearAdministrador");
+        const nombre = String($("nombreAdministrador")?.value || "").trim();
+        const correo = String($("correoAdministradorNuevo")?.value || "").trim().toLowerCase();
+        const password = String($("claveAdministradorNuevo")?.value || "");
+
+        if (!client || !form || !boton) return;
+
+        if (nombre.length < 2 || nombre.length > 100) {
+            notificar("El nombre debe tener entre 2 y 100 caracteres.", "warning");
+            return;
+        }
+        if (correo.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) {
+            notificar("Ingresa un correo válido.", "warning");
+            return;
+        }
+        if (password.length < 8 || password.length > 72) {
+            notificar("La contraseña debe tener entre 8 y 72 caracteres.", "warning");
+            return;
+        }
+
+        boton.disabled = true;
+        try {
+            const { data, error } = await client.functions.invoke(
+                "administrar-usuarios",
+                {
+                    body: {
+                        accion: "crear_administrador",
+                        nombre,
+                        correo,
+                        password
+                    }
+                }
+            );
+            if (error) throw error;
+            if (!data?.ok) throw new Error("La función no confirmó la creación del administrador.");
+
+            form.reset();
+            notificar("El administrador fue creado correctamente.", "success");
+        } catch (error) {
+            console.error("No se pudo crear el administrador:", error);
+            notificar(
+                `No se pudo crear el administrador: ${await obtenerMensajeErrorEdge(error)}`,
+                "error"
+            );
+        } finally {
+            boton.disabled = false;
+        }
+    }
+
+
+    async function gestionarEliminacionPersonal(evento) {
+        const boton = evento.target.closest("button[data-eliminar-usuario]");
+        const client = window.PUNTUALIXSCAN?.client;
+        if (!boton || !client) return;
+
+        const nombre = boton.dataset.nombre || "esta cuenta";
+        const confirmar = window.confirm(
+            `¿Eliminar la cuenta de ${nombre}? Esta acción no se puede deshacer.`
+        );
+        if (!confirmar) return;
+
+        boton.disabled = true;
+        try {
+            const { data, error } = await client.functions.invoke(
+                "administrar-usuarios",
+                {
+                    body: {
+                        accion: "eliminar_personal",
+                        usuarioId: boton.dataset.eliminarUsuario
+                    }
+                }
+            );
+            if (error) throw error;
+            if (!data?.ok) throw new Error("La función no confirmó la eliminación.");
+
+            if (data.rol === "portero") {
+                await cargarPorteros();
+            } else if (data.rol === "profesor") {
+                await cargarProfesoresActivos();
+            }
+            notificar("La cuenta fue eliminada.", "success");
+        } catch (error) {
+            console.error("No se pudo eliminar la cuenta:", error);
+            notificar(
+                `No se pudo eliminar la cuenta: ${await obtenerMensajeErrorEdge(error)}`,
+                "error"
+            );
+            boton.disabled = false;
+        }
+    }
+
+
+    async function obtenerMensajeErrorEdge(error) {
+        const response = error?.context;
+        if (response && typeof response.clone === "function") {
+            try {
+                const body = await response.clone().json();
+                const message = body?.error || body?.message || body?.msg;
+                if (typeof message === "string" && message.trim()) {
+                    return `${message.trim()} (HTTP ${response.status})`;
+                }
+            } catch (parseError) {
+                console.warn("No se pudo leer el detalle devuelto por la Edge Function:", parseError);
+            }
+        }
+        return String(error?.message || "Verifica la conexión y los permisos de Supabase.");
+    }
+
+
     async function cargarPorteros() {
 
         const client =
@@ -973,7 +1144,7 @@ const Configuracion = (() => {
         try {
             const { data, error } = await client
                 .from("usuarios")
-                .select("codigo, nombre")
+                .select("id, codigo, nombre, correo")
                 .eq("rol", "portero")
                 .not("codigo", "is", null)
                 .order("nombre", { ascending: true });
@@ -982,25 +1153,53 @@ const Configuracion = (() => {
                 throw error;
             }
 
-            if (!data?.length) {
-                mostrarEstadoPorteros("Todavía no hay porteros creados.");
-                return;
-            }
-
-            contenedor.innerHTML = data.map(portero => `
-                <div class="approval-item">
-                    <div class="approval-details">
-                        <strong>${escaparHTML(portero.nombre)}</strong>
-                        <span>Código: ${escaparHTML(portero.codigo)}</span>
-                    </div>
-                </div>
-            `).join("");
+            listasAdmin.porteros = data || [];
+            renderizarPorteros();
         } catch (error) {
             console.error("No se pudo cargar la lista de porteros:", error);
             mostrarEstadoPorteros(
                 "No se pudo cargar la lista. Verifica la conexión y los permisos de la base de datos."
             );
         }
+    }
+
+
+    function renderizarPorteros() {
+
+        const contenedor = $("listaPorteros");
+        if (!contenedor) return;
+
+        const porteros = filtrarPorNombreOCorreo(
+            listasAdmin.porteros,
+            $("buscarPorteros")?.value
+        );
+
+        if (!listasAdmin.porteros.length) {
+            mostrarEstadoPorteros("Todavía no hay porteros creados.");
+            actualizarBotonVerTodos("porteros", 0);
+            return;
+        }
+
+        if (!porteros.length) {
+            mostrarEstadoPorteros("No hay porteros que coincidan con la búsqueda.");
+            actualizarBotonVerTodos("porteros", 0);
+            return;
+        }
+
+        const visibles = obtenerElementosVisibles("porteros", porteros);
+        contenedor.innerHTML = visibles.map(portero => `
+                <div class="approval-item">
+                    <div class="approval-details">
+                        <strong>${escaparHTML(portero.nombre || "Sin nombre")}</strong>
+                        <span>${escaparHTML(portero.correo || "Sin correo")} · Código: ${escaparHTML(portero.codigo || "")}</span>
+                    </div>
+                    <div class="approval-actions">
+                        <button class="approval-delete" type="button" data-eliminar-usuario="${escaparHTML(portero.id)}" data-nombre="${escaparHTML(portero.nombre || "el portero")}">Eliminar</button>
+                    </div>
+                </div>
+        `).join("");
+
+        actualizarBotonVerTodos("porteros", porteros.length);
     }
 
 
@@ -1150,6 +1349,13 @@ const Configuracion = (() => {
         presencias
     ) {
 
+        if (Array.isArray(profesores)) {
+            listasAdmin.profesores = profesores;
+            listasAdmin.presencias = Array.isArray(presencias)
+                ? presencias
+                : [];
+        }
+
         const contenedor =
             $("listaProfesoresEnLinea");
 
@@ -1159,7 +1365,7 @@ const Configuracion = (() => {
 
         const presenciaPorUsuario =
             new Map(
-                presencias.map(
+                listasAdmin.presencias.map(
                     presencia => [
                         String(presencia.usuario_id),
                         presencia
@@ -1171,7 +1377,7 @@ const Configuracion = (() => {
             Date.now();
 
         const registros =
-            profesores.map(profesor => {
+            listasAdmin.profesores.map(profesor => {
                 const presencia =
                     presenciaPorUsuario.get(
                         String(profesor.id)
@@ -1197,7 +1403,7 @@ const Configuracion = (() => {
 
         ponerTexto(
             "totalProfesoresAprobados",
-            profesores.length
+            listasAdmin.profesores.length
         );
 
         ponerTexto(
@@ -1207,19 +1413,38 @@ const Configuracion = (() => {
             ).length
         );
 
+        const termino =
+            String($("buscarProfesores")?.value || "").trim().toLowerCase();
+
+        const registrosFiltrados =
+            registros.filter(({ profesor }) =>
+                `${profesor.nombre || ""} ${profesor.correo || ""}`
+                    .toLowerCase()
+                    .includes(termino)
+            );
+
         contenedor.replaceChildren();
 
-        if (!registros.length) {
+        if (!listasAdmin.profesores.length) {
             mostrarEstadoProfesores(
                 "No hay profesores con acceso aprobado."
             );
+            actualizarBotonVerTodos("profesores", 0);
+            return;
+        }
+
+        if (!registrosFiltrados.length) {
+            mostrarEstadoProfesores(
+                "No hay profesores que coincidan con la búsqueda."
+            );
+            actualizarBotonVerTodos("profesores", 0);
             return;
         }
 
         const fragmento =
             document.createDocumentFragment();
 
-        registros.forEach(
+        obtenerElementosVisibles("profesores", registrosFiltrados).forEach(
             ({
                 profesor,
                 presencia,
@@ -1280,16 +1505,30 @@ const Configuracion = (() => {
                         ? "En línea"
                         : "Desconectado";
 
-                fila.append(
-                    datos,
-                    estado
-                );
+                const acciones =
+                    document.createElement("div");
+
+                acciones.className =
+                    "approval-actions";
+
+                const eliminar =
+                    document.createElement("button");
+
+                eliminar.type = "button";
+                eliminar.className = "approval-delete";
+                eliminar.textContent = "Eliminar";
+                eliminar.dataset.eliminarUsuario = profesor.id;
+                eliminar.dataset.nombre = profesor.nombre || "el profesor";
+
+                acciones.appendChild(eliminar);
+                fila.append(datos, estado, acciones);
 
                 fragmento.appendChild(fila);
             }
         );
 
         contenedor.appendChild(fragmento);
+        actualizarBotonVerTodos("profesores", registrosFiltrados.length);
 
     }
 
@@ -1383,7 +1622,8 @@ const Configuracion = (() => {
                 throw error;
             }
 
-            mostrarSolicitudes(data || []);
+            listasAdmin.solicitudes = data || [];
+            mostrarSolicitudes(listasAdmin.solicitudes);
         } catch (error) {
             console.warn("No se pudieron cargar las solicitudes:", error);
             contenedor.innerHTML =
@@ -1402,14 +1642,30 @@ const Configuracion = (() => {
                     String(solicitud.rol || "").toLowerCase()
                 )
         );
+        const termino =
+            String($("buscarSolicitudes")?.value || "").trim().toLowerCase();
+        const filtradas =
+            pendientes.filter(solicitud =>
+                `${solicitud.nombre || ""} ${solicitud.correo || ""}`
+                    .toLowerCase()
+                    .includes(termino)
+            );
 
         if (!pendientes.length) {
-                contenedor.innerHTML =
-                    '<p class="approval-empty">No hay solicitudes pendientes.</p>';
-                return;
+            contenedor.innerHTML =
+                '<p class="approval-empty">No hay solicitudes pendientes.</p>';
+            actualizarBotonVerTodos("solicitudes", 0);
+            return;
         }
 
-        contenedor.innerHTML = pendientes.map(solicitud => `
+        if (!filtradas.length) {
+            contenedor.innerHTML =
+                '<p class="approval-empty">No hay solicitudes que coincidan con la búsqueda.</p>';
+            actualizarBotonVerTodos("solicitudes", 0);
+            return;
+        }
+
+        contenedor.innerHTML = obtenerElementosVisibles("solicitudes", filtradas).map(solicitud => `
                 <div class="approval-item">
                     <div class="approval-details">
                         <strong>${escaparHTML(solicitud.nombre || "Sin nombre")}</strong>
@@ -1421,6 +1677,57 @@ const Configuracion = (() => {
                     </div>
                 </div>
         `).join("");
+        actualizarBotonVerTodos("solicitudes", filtradas.length);
+    }
+
+
+    function obtenerElementosVisibles(tipo, elementos) {
+        return listasAdmin.expandidas[tipo]
+            ? elementos
+            : elementos.slice(0, 3);
+    }
+
+
+    function actualizarBotonVerTodos(tipo, total) {
+        const ids = {
+            porteros: "verTodosPorteros",
+            profesores: "verTodosProfesores",
+            solicitudes: "verTodasSolicitudes"
+        };
+        const boton = $(ids[tipo]);
+        if (!boton) return;
+
+        boton.hidden = total <= 3;
+        boton.textContent = listasAdmin.expandidas[tipo]
+            ? "Ver menos"
+            : `Ver todos (${total})`;
+        boton.setAttribute(
+            "aria-expanded",
+            String(listasAdmin.expandidas[tipo])
+        );
+    }
+
+
+    function alternarListaAdmin(tipo) {
+        listasAdmin.expandidas[tipo] = !listasAdmin.expandidas[tipo];
+
+        if (tipo === "porteros") {
+            renderizarPorteros();
+        } else if (tipo === "profesores") {
+            renderizarProfesoresActivos();
+        } else if (tipo === "solicitudes") {
+            mostrarSolicitudes(listasAdmin.solicitudes);
+        }
+    }
+
+
+    function filtrarPorNombreOCorreo(elementos, busqueda) {
+        const termino = String(busqueda || "").trim().toLowerCase();
+        return elementos.filter(elemento =>
+            `${elemento.nombre || ""} ${elemento.correo || ""}`
+                .toLowerCase()
+                .includes(termino)
+        );
     }
 
 

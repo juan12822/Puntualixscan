@@ -12,7 +12,8 @@
 
 const CONFIG_ESTUDIANTES = {
     tabla: "estudiantes",
-    bucket: "estudiantes",
+    bucket: "fotos-estudiantes",
+    bucketAnterior: "estudiantes",
     carpetaFotos: "fotos",
     registrosPorPagina: 10,
     login: "login.html",
@@ -762,6 +763,8 @@ function renderizarTabla() {
             )
             .join("");
 
+    cargarFotosEstudiantes(elementos.tabla);
+
 
     actualizarPaginacion(
         total
@@ -827,12 +830,6 @@ function crearFilaEstudiante(
         );
 
 
-    const foto =
-        obtenerFoto(
-            estudiante.foto
-        );
-
-
     let contacto = "—";
 
     const bloques = [];
@@ -864,7 +861,8 @@ function crearFilaEstudiante(
 
                 <img
                     class="foto-tabla"
-                    src="${escaparAtributo(foto)}"
+                    src="${escaparAtributo(FOTO_DEFAULT)}"
+                    data-foto-estudiante="${escaparAtributo(estudiante.foto || "")}"
                     alt="Foto de ${escaparAtributo(nombre)}"
                     width="42"
                     height="42"
@@ -1320,7 +1318,7 @@ async function registrarEstudiante() {
 
 
             fotoURL =
-                subida.publicUrl;
+                subida.path;
 
 
             fotoPath =
@@ -1386,7 +1384,9 @@ async function registrarEstudiante() {
 
             }
 
-            throw error;
+            throw fotoPath
+                ? new Error(`La fotografía se subió, pero no se pudo guardar su ruta al crear el estudiante: ${error.message || "error de base de datos"}`)
+                : error;
 
         }
 
@@ -1790,15 +1790,37 @@ async function subirFotografia(
     documento
 ) {
 
+    if (!(archivo instanceof File)) {
+        throw new Error("Selecciona una fotografía antes de guardar.");
+    }
+
+    const tiposPermitidos = new Set([
+        "image/jpeg",
+        "image/png",
+        "image/webp"
+    ]);
+
+    if (!tiposPermitidos.has(archivo.type)) {
+        throw new Error("El formato de imagen no está permitido. Usa JPG, PNG o WEBP.");
+    }
+
+    if (archivo.size <= 0) {
+        throw new Error("El archivo de fotografía está vacío o no se pudo leer.");
+    }
+
+    if (archivo.size > 5 * 1024 * 1024) {
+        throw new Error("La fotografía no puede superar los 5 MB.");
+    }
+
+
     const client =
         obtenerCliente();
 
 
     const extension =
-        obtenerExtension(
-            archivo.name,
-            archivo.type
-        );
+        archivo.type === "image/jpeg"
+            ? "jpg"
+            : archivo.type.split("/")[1];
 
 
     const nombreSeguro =
@@ -1808,16 +1830,14 @@ async function subirFotografia(
 
 
     const nombre =
-        `${nombreSeguro}_${Date.now()}_${generarFragmento(8)}.${extension}`;
+        `${nombreSeguro}_${Date.now()}_${generarFragmentoSeguro(8)}.${extension}`;
 
 
     const path =
         `${CONFIG_ESTUDIANTES.carpetaFotos}/${nombre}`;
 
 
-    const {
-        error
-    } =
+    const { data, error } =
         await client
             .storage
             .from(
@@ -1836,45 +1856,44 @@ async function subirFotografia(
 
 
     if (error) {
+        const detalleError = {
+            message: error.message || "Error devuelto por Storage.",
+            statusCode: error.statusCode || null,
+            status: error.status || null,
+            error: error.error || null,
+            details: error.details || null,
+            hint: error.hint || null
+        };
+        console.error("Falló la carga de la fotografía del estudiante:", {
+            ...detalleError,
+            bucket: CONFIG_ESTUDIANTES.bucket,
+            mimeType: archivo.type,
+            fileSize: archivo.size
+        });
+
+        const detalle =
+            [
+                detalleError.message,
+                error.error,
+                error.statusCode
+                    ? `HTTP ${error.statusCode}`
+                    : ""
+            ]
+                .filter(Boolean)
+                .join(" · ");
 
         throw new Error(
-            `No se pudo subir la fotografía: ${error.message}`
+            `No se pudo subir la fotografía: ${detalle || "error de Storage"}. Revisa el bucket privado y sus políticas.`
         );
 
     }
 
-
-    const {
-        data
-    } =
-        client
-            .storage
-            .from(
-                CONFIG_ESTUDIANTES.bucket
-            )
-            .getPublicUrl(
-                path
-            );
-
-
-    if (
-        !data?.publicUrl
-    ) {
-
-        throw new Error(
-            "No se pudo obtener la URL de la fotografía."
-        );
-
+    if (!data?.path) {
+        throw new Error("Storage no confirmó la ruta de la fotografía subida.");
     }
-
 
     return {
-
-        path,
-
-        publicUrl:
-            data.publicUrl
-
+        path: data.path
     };
 
 }
@@ -1885,10 +1904,11 @@ async function subirFotografia(
    ============================================================ */
 
 async function eliminarFotografia(
-    path
+    fotografia,
+    bucket = CONFIG_ESTUDIANTES.bucket
 ) {
 
-    if (!path) {
+    if (!fotografia) {
 
         return;
 
@@ -1900,15 +1920,34 @@ async function eliminarFotografia(
         const client =
             obtenerCliente();
 
+        const path =
+            typeof fotografia === "string"
+                ? fotografia
+                : fotografia.path;
 
-        await client
+        const bucketFotografia =
+            typeof fotografia === "string"
+                ? bucket
+                : fotografia.bucket;
+
+
+        const { error } = await client
             .storage
             .from(
-                CONFIG_ESTUDIANTES.bucket
+                bucketFotografia
             )
             .remove(
                 [path]
             );
+
+        if (error) {
+            console.warn("No se pudo eliminar la fotografía de Storage:", {
+                message: error.message || "Error devuelto por Storage.",
+                statusCode: error.statusCode || null,
+                error: error.error || null,
+                bucket: bucketFotografia
+            });
+        }
 
     } catch (error) {
 
@@ -2105,7 +2144,7 @@ async function actualizarEstudiante() {
 
 
             fotoURL =
-                subida.publicUrl;
+                subida.path;
 
 
             fotoNuevaPath =
@@ -2167,32 +2206,31 @@ async function actualizarEstudiante() {
             if (fotoNuevaPath) {
 
                 await eliminarFotografia(
-                    fotoNuevaPath
+                    fotoNuevaPath,
+                    CONFIG_ESTUDIANTES.bucket
                 );
 
             }
 
-            throw error;
+            throw fotoNuevaPath
+                ? new Error(`La fotografía se subió, pero no se pudo guardar su ruta en la base de datos: ${error.message}`)
+                : error;
 
         }
 
 
-        const fotoAnteriorPath =
+        const fotoAnterior =
             obtenerPathFotografia(
                 estudiante.foto
             );
 
-
         if (
-            fotoAnteriorPath &&
-            fotoAnteriorPath !==
-            fotoNuevaPath
+            fotoAnterior?.bucket === CONFIG_ESTUDIANTES.bucket &&
+            fotoAnterior.path !== fotoNuevaPath
         ) {
-
             await eliminarFotografia(
-                fotoAnteriorPath
+                fotoAnterior
             );
-
         }
 
 
@@ -2457,6 +2495,18 @@ function generarFragmento(
 
     return resultado;
 
+}
+
+
+function generarFragmentoSeguro(longitud = 8) {
+    const caracteres = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    const bytes = new Uint8Array(longitud);
+    globalThis.crypto.getRandomValues(bytes);
+
+    return Array.from(
+        bytes,
+        byte => caracteres[byte % caracteres.length]
+    ).join("");
 }
 
 
@@ -3135,21 +3185,51 @@ function prepararImagen(
     }
 
 
-    imagen.onerror =
-        () => {
+    imagen.onerror = () => {
+        console.warn("No se pudo cargar la fotografía del estudiante.");
+        imagen.onerror = null;
+        imagen.src = FOTO_DEFAULT;
+    };
 
-            imagen.onerror =
-                null;
+    imagen.dataset.fotoEstudiante = String(src || "");
+    imagen.src = FOTO_DEFAULT;
+    cargarFotoEnImagen(imagen, src);
 
-            imagen.src =
-                FOTO_DEFAULT;
-
-        };
+}
 
 
-    imagen.src =
-        obtenerFoto(src);
+async function cargarFotoEnImagen(imagen, foto) {
+    const valor = obtenerFoto(foto);
+    if (valor === FOTO_DEFAULT) return;
 
+    try {
+        const resolver = window.PUNTUALIXSCAN?.fotos?.urlEstudiante;
+        const url = typeof resolver === "function"
+            ? await resolver(valor)
+            : valor;
+
+        if (
+            imagen.isConnected &&
+            imagen.dataset.fotoEstudiante === String(foto || "") &&
+            url
+        ) {
+            imagen.src = url;
+        }
+    } catch (error) {
+        console.error("No se pudo cargar la fotografía del estudiante.", error);
+        if (imagen.isConnected) {
+            imagen.src = FOTO_DEFAULT;
+        }
+    }
+}
+
+
+function cargarFotosEstudiantes(contenedor) {
+    contenedor
+        ?.querySelectorAll("img[data-foto-estudiante]")
+        .forEach(imagen =>
+            cargarFotoEnImagen(imagen, imagen.dataset.fotoEstudiante)
+        );
 }
 
 
@@ -3248,31 +3328,37 @@ function obtenerPathFotografia(
         String(url);
 
 
-    const marcador =
-        `/storage/v1/object/public/${CONFIG_ESTUDIANTES.bucket}/`;
+    for (const bucket of [
+        CONFIG_ESTUDIANTES.bucket,
+        CONFIG_ESTUDIANTES.bucketAnterior
+    ]) {
+        const marcador =
+            `/storage/v1/object/public/${bucket}/`;
 
+        const posicion =
+            valor.indexOf(marcador);
 
-    const posicion =
-        valor.indexOf(
-            marcador
-        );
-
-
-    if (
-        posicion === -1
-    ) {
-
-        return null;
-
+        if (posicion !== -1) {
+            return {
+                bucket,
+                path: decodeURIComponent(
+                    valor.substring(posicion + marcador.length)
+                )
+            };
+        }
     }
 
+    if (
+        valor.startsWith(`${CONFIG_ESTUDIANTES.carpetaFotos}/`) &&
+        !valor.split("/").some(part => part === "." || part === "..")
+    ) {
+        return {
+            bucket: CONFIG_ESTUDIANTES.bucket,
+            path: valor
+        };
+    }
 
-    return decodeURIComponent(
-        valor.substring(
-            posicion +
-            marcador.length
-        )
-    );
+    return null;
 
 }
 

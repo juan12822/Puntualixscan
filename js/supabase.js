@@ -575,6 +575,83 @@
     const client =
         createClient();
 
+    const signedStudentPhotoUrls = new Map();
+    const STUDENT_PHOTO_BUCKET = "fotos-estudiantes";
+    const LEGACY_STUDENT_PHOTO_BUCKET = "estudiantes";
+
+
+    async function urlFotoEstudiante(foto) {
+        const value = String(foto || "").trim();
+        if (!value) return "";
+
+        if (/^(data:image\/|blob:)/i.test(value)) {
+            return value;
+        }
+
+        const publicLegacyMarker =
+            `/storage/v1/object/public/${LEGACY_STUDENT_PHOTO_BUCKET}/`;
+
+        if (value.includes(publicLegacyMarker)) {
+            return value;
+        }
+
+        let path = value;
+        const newBucketMarkers = [
+            `/storage/v1/object/public/${STUDENT_PHOTO_BUCKET}/`,
+            `/storage/v1/object/sign/${STUDENT_PHOTO_BUCKET}/`
+        ];
+        const marker = newBucketMarkers.find(candidate => value.includes(candidate));
+
+        if (marker) {
+            path = value.slice(value.indexOf(marker) + marker.length);
+            path = path.split("?")[0];
+            try {
+                path = decodeURIComponent(path);
+            } catch (error) {
+                console.warn("La ruta de la foto del estudiante no está codificada correctamente.");
+                throw error;
+            }
+        }
+
+        if (!path.startsWith("fotos/") || path.split("/").some(part => !part || part === "." || part === "..")) {
+            return value;
+        }
+
+        const cached = signedStudentPhotoUrls.get(path);
+        if (cached && cached.expiresAt > Date.now()) {
+            return cached.url;
+        }
+
+        const { data, error } = await client.storage
+            .from(STUDENT_PHOTO_BUCKET)
+            .createSignedUrl(path, 3600);
+
+        if (error || !data?.signedUrl) {
+            console.error("No se pudo firmar la foto privada del estudiante:", {
+                message: error?.message || "Supabase no devolvió una URL firmada.",
+                statusCode: error?.statusCode || null,
+                error: error?.error || null
+            });
+            throw error || new Error("No se pudo crear la URL temporal de la fotografía.");
+        }
+
+        const signedUrl = data.signedUrl;
+        signedStudentPhotoUrls.set(path, {
+            url: signedUrl,
+            expiresAt: Date.now() + 55 * 60 * 1000
+        });
+
+        if (signedStudentPhotoUrls.size > 500) {
+            for (const [cachedPath, entry] of signedStudentPhotoUrls) {
+                if (entry.expiresAt <= Date.now() || signedStudentPhotoUrls.size > 400) {
+                    signedStudentPhotoUrls.delete(cachedPath);
+                }
+            }
+        }
+
+        return signedUrl;
+    }
+
 
     /* ========================================================
        LIMPIAR SESIÓN LOCAL
@@ -2379,6 +2456,11 @@
 
                 storage:
                     storage,
+
+                fotos:
+                    Object.freeze({
+                        urlEstudiante: urlFotoEstudiante
+                    }),
 
 
                 auth:
