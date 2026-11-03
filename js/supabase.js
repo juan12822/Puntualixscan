@@ -579,6 +579,77 @@
     const STUDENT_PHOTO_BUCKET = "fotos-estudiantes";
     const LEGACY_STUDENT_PHOTO_BUCKET = "estudiantes";
 
+    function nombreArchivoFoto(documento) {
+        return String(documento || "")
+            .trim()
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^a-z0-9_-]/g, "_")
+            .replace(/_+/g, "_")
+            .replace(/^_+|_+$/g, "")
+            .slice(0, 80) || "estudiante";
+    }
+
+    async function subirFotoEstudiante(archivo, documento) {
+        const tiposPermitidos = new Set([
+            "image/jpeg",
+            "image/png",
+            "image/webp"
+        ]);
+
+        if (!(archivo instanceof File)) {
+            throw new Error("Selecciona una fotografía antes de guardar.");
+        }
+        if (!tiposPermitidos.has(archivo.type)) {
+            throw new Error("El formato de imagen no está permitido. Usa JPG, PNG o WEBP.");
+        }
+        if (archivo.size <= 0) {
+            throw new Error("El archivo de fotografía está vacío o no se pudo leer.");
+        }
+        if (archivo.size > 5 * 1024 * 1024) {
+            throw new Error("La fotografía no puede superar los 5 MB.");
+        }
+
+        const randomBytes = new Uint8Array(5);
+        global.crypto.getRandomValues(randomBytes);
+        const codigo = Array.from(
+            randomBytes,
+            byte => "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[byte % 36]
+        ).join("");
+        const extension = archivo.type === "image/jpeg"
+            ? "jpg"
+            : archivo.type.split("/")[1];
+        const path = `fotos/${nombreArchivoFoto(documento)}_${Date.now()}_${codigo}.${extension}`;
+        const { data, error } = await client.storage
+            .from(STUDENT_PHOTO_BUCKET)
+            .upload(path, archivo, {
+                contentType: archivo.type,
+                cacheControl: "3600",
+                upsert: false
+            });
+
+        if (error) {
+            console.error("Falló la carga de la fotografía del estudiante:", {
+                message: error.message || "Error devuelto por Storage.",
+                statusCode: error.statusCode || null,
+                status: error.status || null,
+                error: error.error || null,
+                details: error.details || null,
+                bucket: STUDENT_PHOTO_BUCKET,
+                mimeType: archivo.type,
+                fileSize: archivo.size
+            });
+            throw error;
+        }
+
+        if (!data?.path) {
+            throw new Error("Storage no confirmó la ruta de la fotografía subida.");
+        }
+
+        return data.path;
+    }
+
 
     async function urlFotoEstudiante(foto) {
         const value = String(foto || "").trim();
@@ -2459,7 +2530,8 @@
 
                 fotos:
                     Object.freeze({
-                        urlEstudiante: urlFotoEstudiante
+                        urlEstudiante: urlFotoEstudiante,
+                        subirEstudiante: subirFotoEstudiante
                     }),
 
 

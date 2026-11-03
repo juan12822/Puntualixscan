@@ -65,6 +65,10 @@ const state = {
 
     perfilEstudiante: null,
 
+    fotoPerfilNueva: null,
+
+    fotoPerfilPreviewUrl: null,
+
 };
 
 
@@ -309,6 +313,8 @@ async function cargarPerfilEstudiante() {
     $("btnCancelarPerfil")?.addEventListener("click", cerrarEditorPerfil);
     $("btnCerrarEditorPerfil")?.addEventListener("click", cerrarEditorPerfil);
     $("btnVerQrPerfil")?.addEventListener("click", () => mostrarQrPerfil(estudiante));
+    $("btnElegirFotoPerfil")?.addEventListener("click", () => $("fotoPerfilInput")?.click());
+    $("fotoPerfilInput")?.addEventListener("change", manejarSeleccionFotoPerfil);
 }
 
 function abrirEditorPerfil() {
@@ -319,6 +325,8 @@ function abrirEditorPerfil() {
         return;
     }
 
+    limpiarFotoPerfilPendiente();
+    $("fotoPerfilInput").value = "";
     resolverFotoEstudiante(estudiante.foto).then(url => {
         $("fotoEditorPerfil").src = url;
     });
@@ -333,7 +341,47 @@ function cerrarEditorPerfil() {
     if (dialogo?.open) {
         dialogo.close();
     }
+    limpiarFotoPerfilPendiente();
+    $("fotoPerfilInput").value = "";
+    if (state.perfilEstudiante) {
+        resolverFotoEstudiante(state.perfilEstudiante.foto).then(url => {
+            $("fotoEditorPerfil").src = url;
+        });
+    }
+}
 
+function manejarSeleccionFotoPerfil(evento) {
+    const archivo = evento.target.files?.[0];
+    if (!archivo) return;
+
+    const tiposPermitidos = new Set(["image/jpeg", "image/png", "image/webp"]);
+    if (!tiposPermitidos.has(archivo.type)) {
+        evento.target.value = "";
+        notificarError("El formato de imagen no está permitido. Usa JPG, PNG o WEBP.");
+        return;
+    }
+    if (archivo.size <= 0 || archivo.size > 5 * 1024 * 1024) {
+        evento.target.value = "";
+        notificarError(
+            archivo.size > 5 * 1024 * 1024
+                ? "La fotografía no puede superar los 5 MB."
+                : "El archivo de fotografía está vacío o no se pudo leer."
+        );
+        return;
+    }
+
+    limpiarFotoPerfilPendiente();
+    state.fotoPerfilNueva = archivo;
+    state.fotoPerfilPreviewUrl = URL.createObjectURL(archivo);
+    $("fotoEditorPerfil").src = state.fotoPerfilPreviewUrl;
+}
+
+function limpiarFotoPerfilPendiente() {
+    if (state.fotoPerfilPreviewUrl) {
+        URL.revokeObjectURL(state.fotoPerfilPreviewUrl);
+    }
+    state.fotoPerfilNueva = null;
+    state.fotoPerfilPreviewUrl = null;
 }
 
 function mostrarQrPerfil(estudiante) {
@@ -382,6 +430,7 @@ async function guardarPerfilEstudiante(evento) {
 
     const estudiante = state.perfilEstudiante;
     const boton = $("btnGuardarPerfil");
+    const botonFoto = $("btnElegirFotoPerfil");
     const correo = String(estudiante?.correo || "").trim().toLowerCase();
     const telefono = $("telefonoEditorPerfil").value.trim();
 
@@ -390,27 +439,63 @@ async function guardarPerfilEstudiante(evento) {
     }
 
     boton.disabled = true;
+    botonFoto.disabled = true;
     const textoBotonOriginal = boton.innerHTML;
     boton.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Guardando...';
 
     try {
         const client = obtenerCliente();
-        let foto = null;
+        const subirFoto = window.PUNTUALIXSCAN?.fotos?.subirEstudiante;
+        let fotoNueva = null;
+
+        if (state.fotoPerfilNueva) {
+            if (typeof subirFoto !== "function") {
+                throw new Error("No está disponible la carga segura de fotografías.");
+            }
+            fotoNueva = await subirFoto(
+                state.fotoPerfilNueva,
+                estudiante.documento
+            );
+        }
 
         const { error } = await client.rpc("actualizar_perfil_estudiante", {
             correo_nuevo: correo,
             telefono_nuevo: telefono || null,
-            foto_nueva: foto
+            foto_nueva: fotoNueva
         });
 
         if (error) {
+            if (fotoNueva) {
+                await eliminarFotoPropiaSubida(client, fotoNueva);
+            }
             throw error;
         }
 
+        if (fotoNueva) {
+            const { data: confirmacion, error: errorConfirmacion } = await client
+                .from("estudiantes")
+                .select("foto")
+                .eq("id", estudiante.id)
+                .maybeSingle();
+
+            if (errorConfirmacion) {
+                throw new Error(
+                    `La foto se subió, pero no se pudo confirmar que la ruta quedara guardada: ${errorConfirmacion.message}`
+                );
+            }
+            if (confirmacion?.foto !== fotoNueva) {
+                await eliminarFotoPropiaSubida(client, fotoNueva);
+                throw new Error(
+                    "La foto se subió, pero la base de datos no confirmó la nueva ruta. Se conservó la fotografía anterior."
+                );
+            }
+        }
+
+        const fotoAnterior = estudiante.foto;
         estudiante.correo = correo;
         estudiante.telefono = telefono || null;
-        if (foto) {
-            estudiante.foto = foto;
+        if (fotoNueva) {
+            estudiante.foto = fotoNueva;
         }
 
         $("correoEditorPerfil").value = correo;
@@ -418,7 +503,13 @@ async function guardarPerfilEstudiante(evento) {
         const fotoFirmada = await resolverFotoEstudiante(estudiante.foto);
         $("fotoPerfilEstudiante").src = fotoFirmada;
         $("fotoEditorPerfil").src = fotoFirmada;
-        window.PUNTUALIXSCAN?.perfil?.actualizarDesdePerfilEstudiante(estudiante.foto);
+        window.PUNTUALIXSCAN?.perfil?.actualizarDesdePerfilEstudiante(fotoFirmada);
+        const rutaFotoAnterior = obtenerRutaFotoPrivada(fotoAnterior);
+        if (fotoNueva && rutaFotoAnterior && rutaFotoAnterior !== fotoNueva) {
+            await eliminarFotoPropiaSubida(client, rutaFotoAnterior);
+        }
+        limpiarFotoPerfilPendiente();
+        $("fotoPerfilInput").value = "";
         cerrarEditorPerfil();
         notificarExito("Tu perfil fue actualizado.");
     } catch (error) {
@@ -426,7 +517,45 @@ async function guardarPerfilEstudiante(evento) {
         notificarError(obtenerMensajeError(error, "No se pudo actualizar el perfil."));
     } finally {
         boton.disabled = false;
+        botonFoto.disabled = false;
         boton.innerHTML = textoBotonOriginal;
+    }
+}
+
+async function eliminarFotoPropiaSubida(client, path) {
+    try {
+        const { error } = await client.storage
+            .from("fotos-estudiantes")
+            .remove([path]);
+
+        if (error) {
+            throw error;
+        }
+    } catch (error) {
+        console.warn("No se pudo limpiar una fotografía privada del estudiante:", {
+            message: error.message || "Error devuelto por Storage.",
+            statusCode: error.statusCode || null
+        });
+    }
+}
+
+function obtenerRutaFotoPrivada(foto) {
+    const valor = String(foto || "").trim();
+    if (valor.startsWith("fotos/")) return valor;
+
+    const marcadores = [
+        "/storage/v1/object/sign/fotos-estudiantes/",
+        "/storage/v1/object/public/fotos-estudiantes/"
+    ];
+    const marcador = marcadores.find(item => valor.includes(item));
+    if (!marcador) return null;
+
+    try {
+        const ruta = decodeURIComponent(valor.slice(valor.indexOf(marcador) + marcador.length).split("?")[0]);
+        return ruta.startsWith("fotos/") ? ruta : null;
+    } catch (error) {
+        console.warn("No se pudo interpretar la ruta anterior de la foto privada.", error);
+        return null;
     }
 }
 

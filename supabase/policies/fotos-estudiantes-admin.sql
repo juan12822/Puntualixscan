@@ -30,12 +30,24 @@ as $function$
                 80
             ) as documento_archivo
         ) d
-        where u.id = auth.uid()
-          and u.estado = 'aprobado'
-          and (
-              u.rol in ('administrador', 'profesor', 'portero')
+        where (
+              u.id = auth.uid()
               or (
-                  u.rol = 'estudiante'
+                  coalesce(auth.jwt() ->> 'email', '') <> ''
+                  and lower(trim(coalesce(u.correo, ''))) =
+                      lower(trim(auth.jwt() ->> 'email'))
+              )
+          )
+          and lower(trim(coalesce(u.estado, ''))) = 'aprobado'
+          and (
+              lower(trim(coalesce(u.rol, ''))) in (
+                  'administrador',
+                  'admin',
+                  'profesor',
+                  'portero'
+              )
+              or (
+                  lower(trim(coalesce(u.rol, ''))) = 'estudiante'
                   and coalesce(u.documento, '') <> ''
                   and left(
                       storage.filename(object_name),
@@ -49,6 +61,59 @@ $function$;
 revoke all on function public.puede_ver_foto_estudiante(text) from public;
 grant execute on function public.puede_ver_foto_estudiante(text) to authenticated;
 
+create or replace function public.puede_gestionar_foto_propia(object_name text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public, storage
+as $function$
+    select exists (
+        select 1
+        from public.usuarios u
+        cross join lateral (
+            select left(
+                trim(
+                    both '_' from regexp_replace(
+                        regexp_replace(
+                            translate(
+                                lower(coalesce(u.documento, '')),
+                                'áéíóúüñ',
+                                'aeiouun'
+                            ),
+                            '[^a-z0-9_-]',
+                            '_',
+                            'g'
+                        ),
+                        '_+',
+                        '_',
+                        'g'
+                    )
+                ),
+                80
+            ) as documento_archivo
+        ) d
+        where (
+              u.id = auth.uid()
+              or (
+                  coalesce(auth.jwt() ->> 'email', '') <> ''
+                  and lower(trim(coalesce(u.correo, ''))) =
+                      lower(trim(auth.jwt() ->> 'email'))
+              )
+          )
+          and lower(trim(coalesce(u.rol, ''))) = 'estudiante'
+          and lower(trim(coalesce(u.estado, ''))) = 'aprobado'
+          and coalesce(u.documento, '') <> ''
+          and left(
+              storage.filename(object_name),
+              length(d.documento_archivo) + 1
+          ) = d.documento_archivo || '_'
+    );
+$function$;
+
+revoke all on function public.puede_gestionar_foto_propia(text) from public;
+grant execute on function public.puede_gestionar_foto_propia(text) to authenticated;
+
 drop policy if exists "Puntualixscan private student photo read" on storage.objects;
 create policy "Puntualixscan private student photo read"
 on storage.objects
@@ -61,31 +126,30 @@ using (
 );
 
 drop policy if exists "Puntualixscan admin upload student photos" on storage.objects;
-create policy "Puntualixscan admin upload student photos"
+
+drop policy if exists "Puntualixscan student upload own photo" on storage.objects;
+create policy "Puntualixscan student upload own photo"
 on storage.objects
 for insert
 to authenticated
 with check (
     bucket_id = 'fotos-estudiantes'
     and (storage.foldername(name))[1] = 'fotos'
-    and public.es_administrador()
+    and public.puede_gestionar_foto_propia(name)
 );
 
-drop policy if exists "Puntualixscan admin update student photos" on storage.objects;
-create policy "Puntualixscan admin update student photos"
+drop policy if exists "Puntualixscan student delete own photo" on storage.objects;
+create policy "Puntualixscan student delete own photo"
 on storage.objects
-for update
+for delete
 to authenticated
 using (
     bucket_id = 'fotos-estudiantes'
     and (storage.foldername(name))[1] = 'fotos'
-    and public.es_administrador()
-)
-with check (
-    bucket_id = 'fotos-estudiantes'
-    and (storage.foldername(name))[1] = 'fotos'
-    and public.es_administrador()
+    and public.puede_gestionar_foto_propia(name)
 );
+
+drop policy if exists "Puntualixscan admin update student photos" on storage.objects;
 
 drop policy if exists "Puntualixscan admin delete student photos" on storage.objects;
 create policy "Puntualixscan admin delete student photos"

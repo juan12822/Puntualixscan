@@ -1648,6 +1648,14 @@ function manejarSeleccionFoto(
     event
 ) {
 
+    if (estadoEstudiantes.modoEdicion) {
+        elementos.foto.value = "";
+        mostrarAdvertencia(
+            "Solo el estudiante puede cambiar su fotografía desde su perfil."
+        );
+        return;
+    }
+
     const archivo =
         event.target.files?.[0];
 
@@ -1747,6 +1755,14 @@ function manejarSeleccionFoto(
 
 
 function quitarFoto() {
+
+    if (estadoEstudiantes.modoEdicion) {
+        mostrarAdvertencia(
+            "Solo el estudiante puede cambiar su fotografía desde su perfil."
+        );
+        return;
+    }
+
 
     estadoEstudiantes.fotoNueva =
         null;
@@ -2002,7 +2018,6 @@ function editarEstudiante(
         estudiante.foto ||
         null;
 
-
     elementos.nombre.value =
         estudiante.nombre ||
         "";
@@ -2102,6 +2117,12 @@ async function actualizarEstudiante() {
 
 
     try {
+
+        if (estadoEstudiantes.fotoNueva) {
+            throw new Error(
+                "Solo el estudiante puede cambiar su fotografía desde su perfil."
+            );
+        }
 
         const datos =
             obtenerDatosFormulario();
@@ -2216,6 +2237,12 @@ async function actualizarEstudiante() {
                 ? new Error(`La fotografía se subió, pero no se pudo guardar su ruta en la base de datos: ${error.message}`)
                 : error;
 
+        }
+
+        if (fotoNuevaPath && data?.foto !== fotoNuevaPath) {
+            throw new Error(
+                "La fotografía se subió, pero no se confirmó que su ruta quedara guardada correctamente. Se conservó la fotografía anterior."
+            );
         }
 
 
@@ -3027,7 +3054,6 @@ function limpiarFormulario(
 ) {
 
     elementos.formulario?.reset();
-
 
     estadoEstudiantes.fotoNueva =
         null;

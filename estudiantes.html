@@ -619,7 +619,9 @@
 
                     <div
                         class="field"
-                        style="margin-top:13px;"
+                        id="campoFotoEstudiante"
+                        hidden
+                        style="display:none;margin-top:13px;"
                     >
 
                         <label for="foto">
@@ -669,7 +671,8 @@
 
                             <div
                                 class="photo-actions"
-                                style="margin-top:9px;"
+                                hidden
+                                style="display:none;margin-top:9px;"
                             >
 
                                 <button
@@ -685,6 +688,9 @@
                                 </button>
 
                             </div>
+                            <p id="notaFotoSoloEstudiante" style="margin:8px 0 0;color:#718096;font-size:10px;">
+                                Solo el estudiante puede agregar o cambiar su fotografía desde su perfil.
+                            </p>
 
                         </div>
 
@@ -1265,8 +1271,8 @@
      SCRIPTS
 ========================================================= -->
 
-<script src="js/supabase.js?v=foto-privada-20261103"></script>
-<script src="js/estudiantes.js?v=foto-privada-20261103"></script>
+<script src="js/supabase.js?v=foto-paneles-20261103-2"></script>
+<script src="js/estudiantes.js?v=foto-paneles-20261103-2"></script>
 
 
 </body>
