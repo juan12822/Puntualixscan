@@ -1069,9 +1069,18 @@ const Configuracion = (() => {
 
 
     async function gestionarEliminacionPersonal(evento) {
-        const boton = evento.target.closest("button[data-eliminar-usuario]");
+        const objetivo = evento.target;
+        const boton = objetivo instanceof Element
+            ? objetivo.closest("button[data-eliminar-usuario]")
+            : null;
         const client = window.PUNTUALIXSCAN?.client;
         if (!boton || !client) return;
+
+        const usuarioId = String(boton.dataset.eliminarUsuario || "").trim();
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(usuarioId)) {
+            notificar("No se puede eliminar la cuenta: el identificador del usuario no es un UUID válido. Recarga la lista e inténtalo de nuevo.", "error");
+            return;
+        }
 
         const nombre = boton.dataset.nombre || "esta cuenta";
         const confirmar = window.confirm(
@@ -1086,12 +1095,17 @@ const Configuracion = (() => {
                 {
                     body: {
                         accion: "eliminar_personal",
-                        usuarioId: boton.dataset.eliminarUsuario
+                        usuarioId
                     }
                 }
             );
             if (error) throw error;
-            if (!data?.ok) throw new Error("La función no confirmó la eliminación.");
+            if (
+                data?.ok !== true ||
+                !["portero", "profesor"].includes(data.rol)
+            ) {
+                throw new Error("La función no confirmó la eliminación de una cuenta autorizada.");
+            }
 
             if (data.rol === "portero") {
                 await cargarPorteros();
@@ -1112,17 +1126,51 @@ const Configuracion = (() => {
 
     async function obtenerMensajeErrorEdge(error) {
         const response = error?.context;
+        const status = Number(response?.status) || 0;
+        let serverMessage = "";
+
         if (response && typeof response.clone === "function") {
             try {
-                const body = await response.clone().json();
-                const message = body?.error || body?.message || body?.msg;
-                if (typeof message === "string" && message.trim()) {
-                    return `${message.trim()} (HTTP ${response.status})`;
+                const responseText = await response.clone().text();
+                try {
+                    const body = JSON.parse(responseText);
+                    const message = body?.error || body?.message || body?.msg;
+                    if (typeof message === "string" && message.trim()) {
+                        serverMessage = message.trim();
+                    }
+                } catch {
+                    serverMessage = responseText.trim();
                 }
             } catch (parseError) {
                 console.warn("No se pudo leer el detalle devuelto por la Edge Function:", parseError);
             }
         }
+
+        if (status === 401) {
+            return `Error de autorización (401): ${serverMessage || "inicia sesión nuevamente."}`;
+        }
+        if (status === 403) {
+            return `Acceso denegado (403): ${serverMessage || "solo un administrador aprobado puede eliminar estas cuentas."}`;
+        }
+        if (status === 400) {
+            return `Solicitud no válida (400): ${serverMessage || "revisa el identificador del usuario."}`;
+        }
+        if (status === 404) {
+            return `Cuenta no encontrada (404): ${serverMessage || "actualiza la lista e inténtalo de nuevo."}`;
+        }
+        if (status) {
+            return serverMessage
+                ? `${serverMessage} (HTTP ${status})`
+                : `Supabase respondió con HTTP ${status}.`;
+        }
+
+        if (
+            error?.name === "FunctionsFetchError" ||
+            /failed to send a request|failed to fetch|networkerror/i.test(String(error?.message || ""))
+        ) {
+            return "No se recibió una respuesta HTTP de Supabase. Puede ser un problema de CORS o de red; el navegador no permite distinguirlos con certeza. Revisa el preflight de la Edge Function y la conexión.";
+        }
+
         return String(error?.message || "Verifica la conexión y los permisos de Supabase.");
     }
 

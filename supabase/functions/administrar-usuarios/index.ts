@@ -1,26 +1,59 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { corsHeaders } from "npm:@supabase/supabase-js@^2/cors";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-api-version",
-  "Access-Control-Allow-Methods": "POST, OPTIONS"
-};
+const allowedOrigins = new Set([
+  "http://127.0.0.1:5500",
+  "http://localhost:5500",
+  "https://puntualixscan.vercel.app",
+]);
 
-function respond(status: number, body: Record<string, unknown>) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" }
-  });
+const allowedHeaders = [
+  "authorization",
+  "x-client-info",
+  "apikey",
+  "content-type",
+  "x-supabase-api-version",
+  "x-supabase-client-platform",
+  "x-supabase-client-platform-version",
+  "x-supabase-client-runtime",
+  "x-supabase-client-runtime-version",
+].join(", ");
+
+const uuidPattern =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function getCorsHeaders(origin: string | null): Record<string, string> {
+  const headers: Record<string, string> = {
+    "Access-Control-Allow-Headers": allowedHeaders,
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Vary": "Origin",
+  };
+
+  if (origin && allowedOrigins.has(origin)) {
+    headers["Access-Control-Allow-Origin"] = origin;
+  }
+
+  return headers;
 }
+
+type Responder = (
+  status: number,
+  body: Record<string, unknown>,
+) => Response;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 Deno.serve(async (request: Request) => {
+  const corsHeaders = getCorsHeaders(request.headers.get("Origin"));
+  const respond: Responder = (status, body) =>
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+
   if (request.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response(null, { status: 204, headers: corsHeaders });
   }
 
   if (request.method !== "POST") {
@@ -82,11 +115,11 @@ Deno.serve(async (request: Request) => {
     }
 
     if (body.accion === "crear_administrador") {
-      return await crearAdministrador(adminClient, body);
+      return await crearAdministrador(adminClient, body, respond);
     }
 
     if (body.accion === "eliminar_personal") {
-      return await eliminarPersonal(adminClient, authData.user.id, body);
+      return await eliminarPersonal(adminClient, authData.user.id, body, respond);
     }
 
     return respond(400, { error: "La acción solicitada no es válida." });
@@ -98,7 +131,8 @@ Deno.serve(async (request: Request) => {
 
 async function crearAdministrador(
   adminClient: ReturnType<typeof createClient>,
-  body: Record<string, unknown>
+  body: Record<string, unknown>,
+  respond: Responder,
 ) {
   const nombre = typeof body.nombre === "string" ? body.nombre.trim() : "";
   const correo = typeof body.correo === "string"
@@ -173,10 +207,11 @@ async function crearAdministrador(
 async function eliminarPersonal(
   adminClient: ReturnType<typeof createClient>,
   actorId: string,
-  body: Record<string, unknown>
+  body: Record<string, unknown>,
+  respond: Responder,
 ) {
   const usuarioId = typeof body.usuarioId === "string" ? body.usuarioId.trim() : "";
-  if (!usuarioId || usuarioId.length > 100) {
+  if (!uuidPattern.test(usuarioId)) {
     return respond(400, { error: "El identificador del usuario no es válido." });
   }
   if (usuarioId === actorId) {

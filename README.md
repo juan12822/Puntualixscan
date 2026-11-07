@@ -53,7 +53,9 @@ La creación de otros administradores y la eliminación de cuentas de profesores
 4. En Supabase, confirma que la función esté desplegada y que tenga disponibles los secretos de entorno `SUPABASE_URL`, `SUPABASE_ANON_KEY` y `SUPABASE_SERVICE_ROLE_KEY`. La llave de servicio debe permanecer únicamente en el entorno de Edge Functions.
 5. En Configuración, inicia sesión como administrador aprobado. El panel permite crear administradores y eliminar profesores o porteros; el servidor rechaza cualquier acción de una sesión que no sea de administrador aprobado.
 
-No es necesario crear una función SQL para estas acciones. La implementación está en [`supabase/functions/administrar-usuarios/index.ts`](./supabase/functions/administrar-usuarios/index.ts); los comandos anteriores la publican en Edge Functions.
+`administrar-usuarios` es la única Edge Function que usa el panel para eliminar profesores y porteros; no se sustituye por `admin-cuentas`. Sus orígenes CORS permitidos son `http://127.0.0.1:5500`, `http://localhost:5500` y `https://puntualixscan.vercel.app`. Si se usa otro dominio o una vista previa de Vercel, añade su origen exacto a la lista permitida en [`supabase/functions/administrar-usuarios/index.ts`](./supabase/functions/administrar-usuarios/index.ts) y vuelve a desplegar esa función. GitHub/Vercel no despliega automáticamente las Edge Functions.
+
+No es necesario crear una función SQL para estas acciones. La implementación está en [`supabase/functions/administrar-usuarios/index.ts`](./supabase/functions/administrar-usuarios/index.ts); el comando anterior publica la función en Edge Functions.
 
 ## Navegación por rol
 
