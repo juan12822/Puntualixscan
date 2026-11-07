@@ -51,6 +51,51 @@
         }
     }
 
+    /*
+     * La foto de perfil NO se guarda en user_metadata: Supabase copia ese
+     * metadato dentro del token de sesión y una imagen en base64 lo vuelve tan
+     * grande (decenas de miles de caracteres) que Storage rechaza las
+     * peticiones con "400 Bad Request". Se conserva solo en este navegador,
+     * separada por usuario, y sobrevive al cierre de sesión.
+     */
+    const PREFIJO_AVATAR_LOCAL = "puntualixscan.avatar.";
+
+    function leerAvatarPersistente() {
+        try {
+            const id = leerUsuarioLocal()?.id;
+            if (!id) return "";
+            const url = localStorage.getItem(PREFIJO_AVATAR_LOCAL + id) || "";
+            return validarAvatar(url) ? url : "";
+        } catch (error) {
+            return "";
+        }
+    }
+
+    function guardarAvatarPersistente(url) {
+        try {
+            const id = leerUsuarioLocal()?.id;
+            if (!id) return;
+            if (url) {
+                localStorage.setItem(PREFIJO_AVATAR_LOCAL + id, url);
+            } else {
+                localStorage.removeItem(PREFIJO_AVATAR_LOCAL + id);
+            }
+        } catch (error) {
+            console.warn("No se pudo conservar la foto de perfil en este navegador:", error);
+        }
+    }
+
+    async function limpiarAvatarDeMetadata() {
+        if (!client) return;
+        try {
+            const { error } = await client.auth.updateUser({ data: { avatar_url: null } });
+            if (error) throw error;
+            await client.auth.refreshSession();
+        } catch (error) {
+            console.warn("No se pudo quitar la foto antigua del token de sesión:", error);
+        }
+    }
+
     function aplicarAvatarAImagen(imagen, url) {
         if (!imagen || imagen.getAttribute("src") === url) return;
 
@@ -103,10 +148,13 @@
     }
 
     function sincronizarAvatarCuenta(url) {
-        if (validarAvatar(url)) {
+        const remota = validarAvatar(url) && !/^data:/i.test(url) ? url : "";
+        const elegido = remota || leerAvatarPersistente() || (validarAvatar(url) ? url : "");
+        if (elegido) {
             avatarDeCuenta = true;
-            aplicarAvatar(url);
-            guardarAvatarLocal(url, "cuenta");
+            aplicarAvatar(elegido);
+            guardarAvatarLocal(elegido, "cuenta");
+            if (!remota) guardarAvatarPersistente(elegido);
             return;
         }
 
@@ -175,19 +223,15 @@
                 throw new Error("Inicia sesión nuevamente para guardar tu foto.");
             }
 
-            const metadata = userData.user.user_metadata || {};
-            const { data, error } = await client.auth.updateUser({
-                data: { ...metadata, avatar_url: fotoPendiente }
-            });
-            if (error) throw error;
-            if (!data?.user) {
-                throw new Error("El servicio no confirmó el guardado de la foto.");
-            }
-
             actualizarAvatar(fotoPendiente, "cuenta");
+            guardarAvatarPersistente(fotoPendiente);
+            if (typeof userData.user.user_metadata?.avatar_url === "string" &&
+                /^data:/i.test(userData.user.user_metadata.avatar_url)) {
+                await limpiarAvatarDeMetadata();
+            }
             document.getElementById("vistaPreviaFotoPerfil").removeAttribute("data-pending-avatar");
             archivo.value = "";
-            estado.textContent = "Foto de perfil actualizada.";
+            estado.textContent = "Foto de perfil actualizada en este dispositivo.";
         } catch (error) {
             console.error("No se pudo guardar la foto de perfil:", error);
             estado.textContent = error.message || "No se pudo guardar la foto de perfil.";
@@ -206,8 +250,20 @@
             const { data, error } = await client.auth.getUser();
             if (error) throw error;
             const avatar = data?.user?.user_metadata?.avatar_url;
+            if (typeof avatar === "string" && /^data:/i.test(avatar)) {
+                if (!leerAvatarPersistente() && validarAvatar(avatar)) {
+                    guardarAvatarPersistente(avatar);
+                }
+                const conservada = leerAvatarPersistente();
+                if (conservada) actualizarAvatar(conservada, "cuenta");
+                await limpiarAvatarDeMetadata();
+                return;
+            }
             if (validarAvatar(avatar)) {
                 actualizarAvatar(avatar, "cuenta");
+            } else {
+                const conservada = leerAvatarPersistente();
+                if (conservada) actualizarAvatar(conservada, "cuenta");
             }
         } catch (error) {
             console.warn("No se pudo comprobar la foto de perfil en la cuenta:", error);
