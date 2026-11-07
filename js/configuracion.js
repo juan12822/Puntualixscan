@@ -1646,7 +1646,7 @@ const Configuracion = (() => {
             String($("buscarSolicitudes")?.value || "").trim().toLowerCase();
         const filtradas =
             pendientes.filter(solicitud =>
-                `${solicitud.nombre || ""} ${solicitud.correo || ""}`
+                `${solicitud.nombre || ""} ${solicitud.correo || ""} ${solicitud.curso || ""}`
                     .toLowerCase()
                     .includes(termino)
             );
