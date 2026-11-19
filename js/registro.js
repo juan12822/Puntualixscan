@@ -73,6 +73,14 @@ document.addEventListener('DOMContentLoaded', () => {
         return authData;
     }
 
+    function obtenerMensajeErrorRegistro(error) {
+        if (/signups not allowed for this instance/i.test(error?.message || '')) {
+            return 'Supabase tiene desactivados los registros. Un administrador debe habilitar "Allow new users to sign up" en Authentication > Sign In / Providers > Email del proyecto y luego volver a intentarlo.';
+        }
+
+        return error?.message || 'Supabase rechazó el registro. Verifica los datos e inténtalo nuevamente.';
+    }
+
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
 
@@ -143,7 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
             Swal.fire({
                 icon: 'error',
                 title: 'No se pudo registrar el usuario',
-                text: error.message || 'Supabase rechazó el registro. Verifica los datos e inténtalo nuevamente.',
+                text: obtenerMensajeErrorRegistro(error),
                 confirmButtonColor: '#165dff'
             });
             return;

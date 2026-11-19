@@ -1,5 +1,9 @@
 # Puntualixscan
 
+## Habilitar el registro de usuarios
+
+La página de registro crea las cuentas de estudiantes y profesores mediante Supabase Auth. Si aparece `Signups not allowed for this instance`, un administrador del proyecto `dejuztyypfxtejfjfmlp` debe habilitar **Allow new users to sign up** en **Authentication > Sign In / Providers > Email**. Esta opción es una configuración del proyecto alojado y no se puede activar desde el código del navegador. Después de habilitarla, vuelve a intentar el registro.
+
 ## Despliegue de eliminación completa de estudiantes
 
 El borrado de estudiantes usa la Edge Function `eliminar-estudiante`. Despliega la función en el proyecto Supabase asociado antes de usar el botón de eliminar:
